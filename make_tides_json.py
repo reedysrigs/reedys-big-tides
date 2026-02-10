@@ -56,7 +56,6 @@ print(text[:1200])
 print("--- PAGE END ---\n")
 
 lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
 
             # Find month headings on page
             for ln in lines:
