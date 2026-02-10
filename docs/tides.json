@@ -5,8 +5,8 @@
   "generated_on": "2026-02-10",
   "days_ahead": 60,
   "thresholds": {
-    "high_m": 2.8,
-    "move_m": 2.2
+    "high_m": 0.0,
+    "move_m": 0.0
   },
   "days": []
 }
