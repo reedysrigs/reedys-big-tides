@@ -1,21 +1,25 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 import os
 import re
 import json
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from typing import Dict, List, Tuple, Any
 
 import requests
 import pdfplumber
 
+# Map month headings found in the BoM PDF to month numbers
 MONTHS = {
-    "January": 1, "February": 2, "March": 3, "April": 4,
-    "May": 5, "June": 6, "July": 7, "August": 8,
-    "September": 9, "October": 10, "November": 11, "December": 12
+    "JANUARY": 1, "FEBRUARY": 2, "MARCH": 3, "APRIL": 4,
+    "MAY": 5, "JUNE": 6, "JULY": 7, "AUGUST": 8,
+    "SEPTEMBER": 9, "OCTOBER": 10, "NOVEMBER": 11, "DECEMBER": 12
 }
 
-# Matches tide rows like: "21  1040 0.73  1630 2.83  2230 0.55"
-# Different BoM PDFs vary slightly, so we keep it flexible.
+# Example line pattern (varies a bit by PDF extraction):
+#  1   0123 0.45  0744 2.11  1330 0.62  2010 2.05
+# Day  t1   h1    t2   h2    t3   h3    t4   h4
 DAY_ROW_RE = re.compile(
     r"^\s*(\d{1,2})\s+"
     r"(\d{3,4})\s+([0-9.]+)\s+"
@@ -25,14 +29,9 @@ DAY_ROW_RE = re.compile(
     r"\s*$"
 )
 
-def fmt_time(hhmm: str) -> str:
-    hhmm = hhmm.zfill(4)
-    return f"{hhmm[:2]}:{hhmm[2:]}"
-
 def download(url: str, out_path: str) -> None:
-    # Some gov sites dislike blank/unknown user agents. This helps.
     headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; reedys-big-tides/1.0)"
+        "User-Agent": "Mozilla/5.0 (compatible; reedys-big-tides/1.0; +https://github.com/reedysrigs/reedys-big-tides)"
     }
     r = requests.get(url, timeout=60, headers=headers)
     r.raise_for_status()
@@ -48,19 +47,14 @@ def parse_bom_pdf(pdf_path: str, year: int) -> Dict[str, List[Tuple[str, float]]
 
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
-           
             text = page.extract_text() or ""
+            lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
 
-print("\n--- PAGE START ---")
-print(text[:1200])
-print("--- PAGE END ---\n")
-
-lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-
-            # Find month headings on page
+            # Find month headings on page (JANUARY, FEBRUARY, etc)
             for ln in lines:
-                if ln in MONTHS:
-                    current_month = MONTHS[ln]
+                up = ln.upper()
+                if up in MONTHS:
+                    current_month = MONTHS[up]
 
             if not current_month:
                 continue
@@ -72,81 +66,57 @@ lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
                     continue
 
                 day = int(m.group(1))
-                # First two events are always present in this pattern
+
+                # First two events always present
                 t1, h1 = m.group(2), float(m.group(3))
                 t2, h2 = m.group(4), float(m.group(5))
 
-                # Optional 3rd/4th events
-                t3 = m.group(6); h3 = m.group(7)
-                t4 = m.group(8); h4 = m.group(9)
-
                 events: List[Tuple[str, float]] = [(t1.zfill(4), h1), (t2.zfill(4), h2)]
+
+                # Optional 3rd/4th
+                t3, h3 = m.group(6), m.group(7)
+                t4, h4 = m.group(8), m.group(9)
                 if t3 and h3:
                     events.append((t3.zfill(4), float(h3)))
                 if t4 and h4:
                     events.append((t4.zfill(4), float(h4)))
 
-                # Build date key
-                d = date(year, current_month, day).isoformat()
-                data[d] = events
+                key = date(year, current_month, day).isoformat()
+                data[key] = events
 
     return data
 
 def build_low_to_high_pairs(events: List[Tuple[str, float]]) -> List[Dict[str, Any]]:
     """
-    Given daily tide events list [(time, height)...] in chronological order,
-    build pairs of (LOW -> next HIGH).
+    Given a day's events [(time, height)...], build low->high pairs by scanning in time order.
+    We treat a "pair" as any rising segment from a local min to subsequent local max.
     """
+    if not events:
+        return []
+
+    # sort by time (HHMM string)
+    ev = sorted(events, key=lambda x: x[0])
+
     pairs: List[Dict[str, Any]] = []
-    if len(events) < 2:
-        return pairs
-
-    # Identify lows/highs by comparing neighboring heights.
-    # Simpler: classify each event as low if it’s lower than both neighbors (where possible),
-    # otherwise high. For the 2-event days, just treat smaller as low and larger as high.
-    times = [t for t, _ in events]
-    heights = [h for _, h in events]
-
-    kinds: List[str] = []
-    if len(events) == 2:
-        kinds = ["low", "high"] if heights[0] < heights[1] else ["high", "low"]
-    else:
-        for i in range(len(heights)):
-            prev_h = heights[i - 1] if i - 1 >= 0 else None
-            next_h = heights[i + 1] if i + 1 < len(heights) else None
-            h = heights[i]
-            if prev_h is None:
-                kinds.append("low" if next_h is not None and h < next_h else "high")
-            elif next_h is None:
-                kinds.append("low" if h < prev_h else "high")
-            else:
-                kinds.append("low" if (h < prev_h and h < next_h) else "high")
-
-    # Pair low -> next high
-    for i in range(len(events)):
-        if kinds[i] != "low":
-            continue
-        low_t, low_h = events[i]
-        # find next high after this low
-        for j in range(i + 1, len(events)):
-            if kinds[j] == "high":
-                high_t, high_h = events[j]
-                move = round(high_h - low_h, 2)
-                pairs.append({
-                    "low_time": fmt_time(low_t),
-                    "low_m": round(low_h, 2),
-                    "high_time": fmt_time(high_t),
-                    "high_m": round(high_h, 2),
-                    "move_m": move
-                })
-                break
+    # simple approach: pair consecutive events if second is higher (rise)
+    for i in range(len(ev) - 1):
+        t1, h1 = ev[i]
+        t2, h2 = ev[i + 1]
+        if h2 > h1:
+            pairs.append({
+                "low_time": t1,
+                "low_m": round(h1, 2),
+                "high_time": t2,
+                "high_m": round(h2, 2),
+                "move_m": round(h2 - h1, 2),
+            })
 
     return pairs
 
-def main():
+def main() -> None:
     bom_pdf_url = os.environ.get("BOM_PDF_URL", "").strip()
     if not bom_pdf_url:
-        raise SystemExit("Missing BOM_PDF_URL. Set it as a GitHub repo VARIABLE.")
+        raise SystemExit("Missing BOM_PDF_URL. Set it as a GitHub repo variable.")
 
     days_ahead = int(os.environ.get("DAYS_AHEAD", "60"))
     high_thr = float(os.environ.get("HIGH_THRESHOLD", "2.8"))
@@ -163,7 +133,7 @@ def main():
 
     data = parse_bom_pdf(pdf_path, year)
 
-    out = {
+    out: Dict[str, Any] = {
         "source": "Bureau of Meteorology (BoM) tide tables – Western Port (Stony Point)",
         "source_pdf": bom_pdf_url,
         "timezone": tz_label,
@@ -175,7 +145,7 @@ def main():
 
     d = today
     while d <= end:
-        key = d.isoformat()  # IMPORTANT: keys are strings
+        key = d.isoformat()
         events = data.get(key)
         if events:
             pairs = build_low_to_high_pairs(events)
