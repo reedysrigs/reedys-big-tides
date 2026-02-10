@@ -1,94 +1,146 @@
-import os, re, json
-from datetime import date, timedelta
+#!/usr/bin/env python3
+import os
+import re
+import json
+from datetime import date, datetime, timedelta
+from typing import Dict, List, Tuple, Any
+
 import requests
 import pdfplumber
 
 MONTHS = {
-    "JANUARY": 1, "FEBRUARY": 2, "MARCH": 3, "APRIL": 4, "MAY": 5, "JUNE": 6,
-    "JULY": 7, "AUGUST": 8, "SEPTEMBER": 9, "OCTOBER": 10, "NOVEMBER": 11, "DECEMBER": 12
+    "January": 1, "February": 2, "March": 3, "April": 4,
+    "May": 5, "June": 6, "July": 7, "August": 8,
+    "September": 9, "October": 10, "November": 11, "December": 12
 }
 
-def download(url: str, out_path: str):
+# Matches tide rows like: "21  1040 0.73  1630 2.83  2230 0.55"
+# Different BoM PDFs vary slightly, so we keep it flexible.
+DAY_ROW_RE = re.compile(
+    r"^\s*(\d{1,2})\s+"
+    r"(\d{3,4})\s+([0-9.]+)\s+"
+    r"(\d{3,4})\s+([0-9.]+)"
+    r"(?:\s+(\d{3,4})\s+([0-9.]+))?"
+    r"(?:\s+(\d{3,4})\s+([0-9.]+))?"
+    r"\s*$"
+)
+
+def fmt_time(hhmm: str) -> str:
+    hhmm = hhmm.zfill(4)
+    return f"{hhmm[:2]}:{hhmm[2:]}"
+
+def download(url: str, out_path: str) -> None:
+    # Some gov sites dislike blank/unknown user agents. This helps.
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
-        "Accept": "application/pdf,*/*;q=0.8",
-        "Accept-Language": "en-AU,en;q=0.9",
-        "Referer": "https://www.bom.gov.au/",
+        "User-Agent": "Mozilla/5.0 (compatible; reedys-big-tides/1.0)"
     }
-
-    r = requests.get(url, headers=headers, timeout=60, allow_redirects=True)
-
-    # Fallback if BOM blocks the www host
-    if r.status_code == 403 and "bom.gov.au" in url:
-        alt = url.replace("https://www.bom.gov.au", "https://reg.bom.gov.au")
-        r = requests.get(alt, headers=headers, timeout=60, allow_redirects=True)
-
+    r = requests.get(url, timeout=60, headers=headers)
     r.raise_for_status()
-
     with open(out_path, "wb") as f:
         f.write(r.content)
 
-
-def parse_bom_pdf(pdf_path: str, year: int):
-    data = {}
-    current_month = None
+def parse_bom_pdf(pdf_path: str, year: int) -> Dict[str, List[Tuple[str, float]]]:
+    """
+    Returns dict keyed by 'YYYY-MM-DD' -> list of (time 'HHMM', height_m).
+    """
+    data: Dict[str, List[Tuple[str, float]]] = {}
+    current_month: int | None = None
 
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             text = page.extract_text() or ""
             lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
 
+            # Find month headings on page
             for ln in lines:
                 if ln in MONTHS:
                     current_month = MONTHS[ln]
-                    continue
-                if current_month is None:
-                    continue
 
-                m = re.match(r"^(\d{1,2})\b", ln)
+            if not current_month:
+                continue
+
+            # Parse day rows
+            for ln in lines:
+                m = DAY_ROW_RE.match(ln)
                 if not m:
                     continue
 
                 day = int(m.group(1))
-                pairs = re.findall(r"(\d{3,4})\s+(\d\.\d{2})", ln)
-                if not pairs:
-                    continue
+                # First two events are always present in this pattern
+                t1, h1 = m.group(2), float(m.group(3))
+                t2, h2 = m.group(4), float(m.group(5))
 
-                try:
-                    d = date(year, current_month, day)
-                except ValueError:
-                    continue
+                # Optional 3rd/4th events
+                t3 = m.group(6); h3 = m.group(7)
+                t4 = m.group(8); h4 = m.group(9)
 
-                events = []
-                for t, h in pairs:
-                    t = t.zfill(4)
-                    events.append((t, float(h)))
+                events: List[Tuple[str, float]] = [(t1.zfill(4), h1), (t2.zfill(4), h2)]
+                if t3 and h3:
+                    events.append((t3.zfill(4), float(h3)))
+                if t4 and h4:
+                    events.append((t4.zfill(4), float(h4)))
 
-                data.setdefault(d, []).extend(events)
+                # Build date key
+                d = date(year, current_month, day).isoformat()
+                data[d] = events
 
-    for d in data:
-        data[d].sort(key=lambda x: x[0])
     return data
 
-def build_low_to_high_pairs(events):
-    pairs = []
-    for i in range(len(events) - 1):
-        t1, h1 = events[i]
-        t2, h2 = events[i + 1]
-        if h2 > h1:
-            pairs.append({
-                "low_time": t1,
-                "low_m": round(h1, 2),
-                "high_time": t2,
-                "high_m": round(h2, 2),
-                "move_m": round(h2 - h1, 2)
-            })
+def build_low_to_high_pairs(events: List[Tuple[str, float]]) -> List[Dict[str, Any]]:
+    """
+    Given daily tide events list [(time, height)...] in chronological order,
+    build pairs of (LOW -> next HIGH).
+    """
+    pairs: List[Dict[str, Any]] = []
+    if len(events) < 2:
+        return pairs
+
+    # Identify lows/highs by comparing neighboring heights.
+    # Simpler: classify each event as low if it’s lower than both neighbors (where possible),
+    # otherwise high. For the 2-event days, just treat smaller as low and larger as high.
+    times = [t for t, _ in events]
+    heights = [h for _, h in events]
+
+    kinds: List[str] = []
+    if len(events) == 2:
+        kinds = ["low", "high"] if heights[0] < heights[1] else ["high", "low"]
+    else:
+        for i in range(len(heights)):
+            prev_h = heights[i - 1] if i - 1 >= 0 else None
+            next_h = heights[i + 1] if i + 1 < len(heights) else None
+            h = heights[i]
+            if prev_h is None:
+                kinds.append("low" if next_h is not None and h < next_h else "high")
+            elif next_h is None:
+                kinds.append("low" if h < prev_h else "high")
+            else:
+                kinds.append("low" if (h < prev_h and h < next_h) else "high")
+
+    # Pair low -> next high
+    for i in range(len(events)):
+        if kinds[i] != "low":
+            continue
+        low_t, low_h = events[i]
+        # find next high after this low
+        for j in range(i + 1, len(events)):
+            if kinds[j] == "high":
+                high_t, high_h = events[j]
+                move = round(high_h - low_h, 2)
+                pairs.append({
+                    "low_time": fmt_time(low_t),
+                    "low_m": round(low_h, 2),
+                    "high_time": fmt_time(high_t),
+                    "high_m": round(high_h, 2),
+                    "move_m": move
+                })
+                break
+
     return pairs
 
 def main():
     bom_pdf_url = os.environ.get("BOM_PDF_URL", "").strip()
     if not bom_pdf_url:
-        raise SystemExit("Missing BOM_PDF_URL. Set it as a GitHub repo variable.")
+        raise SystemExit("Missing BOM_PDF_URL. Set it as a GitHub repo VARIABLE.")
 
     days_ahead = int(os.environ.get("DAYS_AHEAD", "60"))
     high_thr = float(os.environ.get("HIGH_THRESHOLD", "2.8"))
@@ -117,7 +169,8 @@ def main():
 
     d = today
     while d <= end:
-        events = data.get(d)
+        key = d.isoformat()  # IMPORTANT: keys are strings
+        events = data.get(key)
         if events:
             pairs = build_low_to_high_pairs(events)
             if pairs:
@@ -125,7 +178,7 @@ def main():
                 max_move = max(p["move_m"] for p in pairs)
                 if (max_high >= high_thr) or (max_move >= move_thr):
                     out["days"].append({
-                        "date": d.isoformat(),
+                        "date": key,
                         "pairs": pairs,
                         "max_high_m": round(max_high, 2),
                         "max_move_m": round(max_move, 2)
