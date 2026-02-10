@@ -2,19 +2,33 @@ name: Update tides.json
 
 on:
   schedule:
-    - cron: "15 19 * * *"  # daily (UTC) ~ early morning Melbourne
-  workflow_dispatch: {}
+    - cron: "15 19 * * *" # daily (UTC) ~ early morning Melbourne
+  workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: update-tides
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+    env:
+      BOM_PDF_URL: ${{ vars.BOM_PDF_URL }}
+      DAYS_AHEAD: "60"
+      HIGH_THRESHOLD: "0"
+      MOVE_THRESHOLD: "0"
+      TZ_LABEL: "Australia/Melbourne"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
@@ -24,14 +38,10 @@ jobs:
           pip install -r requirements.txt
 
       - name: Generate tides.json
-        env:
-          BOM_PDF_URL: ${{ vars.BOM_PDF_URL }}
-          DAYS_AHEAD: "60"
-          HIGH_THRESHOLD: "2.8"
-          MOVE_THRESHOLD: "2.2"
-          TZ_LABEL: "Australia/Melbourne"
         run: |
           python make_tides_json.py
+          echo "---- docs/tides.json preview ----"
+          python -c "import json; d=json.load(open('docs/tides.json')); print('days:', len(d.get('days',[]))); print('generated_on:', d.get('generated_on')); print('days_ahead:', d.get('days_ahead'))"
 
       - name: Commit changes
         run: |
