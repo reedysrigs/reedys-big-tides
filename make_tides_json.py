@@ -48,8 +48,15 @@ def parse_bom_pdf(pdf_path: str, year: int) -> Dict[str, List[Tuple[str, float]]
 
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
+           
             text = page.extract_text() or ""
-            lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+
+print("\n--- PAGE START ---")
+print(text[:1200])
+print("--- PAGE END ---\n")
+
+lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
 
             # Find month headings on page
             for ln in lines:
