@@ -13,25 +13,30 @@ import requests
 
 
 # -----------------------------
-# Constants
+# Month detection (FULL + ABBR)
 # -----------------------------
 
 MONTHS = {
-    "JANUARY": 1,
-    "FEBRUARY": 2,
-    "MARCH": 3,
-    "APRIL": 4,
+    "JANUARY": 1, "JAN": 1,
+    "FEBRUARY": 2, "FEB": 2,
+    "MARCH": 3, "MAR": 3,
+    "APRIL": 4, "APR": 4,
     "MAY": 5,
-    "JUNE": 6,
-    "JULY": 7,
-    "AUGUST": 8,
-    "SEPTEMBER": 9,
-    "OCTOBER": 10,
-    "NOVEMBER": 11,
-    "DECEMBER": 12,
+    "JUNE": 6, "JUN": 6,
+    "JULY": 7, "JUL": 7,
+    "AUGUST": 8, "AUG": 8,
+    "SEPTEMBER": 9, "SEP": 9,
+    "OCTOBER": 10, "OCT": 10,
+    "NOVEMBER": 11, "NOV": 11,
+    "DECEMBER": 12, "DEC": 12,
 }
 
-MONTH_RE = re.compile(r"\b(" + "|".join(MONTHS.keys()) + r")\b", re.IGNORECASE)
+# Match "FEBRUARY" or "FEB", optionally followed by a year like "2026"
+MONTH_YEAR_RE = re.compile(
+    r"\b(" + "|".join(sorted(MONTHS.keys(), key=len, reverse=True)) + r")\b(?:\s+(\d{4}))?",
+    re.IGNORECASE
+)
+
 TIME_RE = re.compile(r"^\d{3,4}$")
 FLOAT_RE = re.compile(r"^[0-9]+\.[0-9]+$")
 
@@ -70,40 +75,39 @@ class TideEvent:
 
 
 # -----------------------------
-# PDF Parsing (robust)
+# PDF Parsing (token-based, loud failures)
 # -----------------------------
 
 def parse_bom_pdf(pdf_path: str, base_year: int) -> Dict[str, List[TideEvent]]:
-    """
-    Robustly parse a BoM tide-table PDF into:
-      'YYYY-MM-DD' -> list[TideEvent(time_hhmm, height_m)]
-
-    Why this works:
-    - BoM PDFs often extract text with odd spacing/columns.
-    - Token parsing is far more reliable than matching an entire line with a strict regex.
-    - Month can appear inside headings like "FEBRUARY 2026" etc.
-    """
     if not os.path.exists(pdf_path):
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
 
     data: Dict[str, List[TideEvent]] = {}
 
     current_month: Optional[int] = None
-    current_year = base_year
+    current_year: int = base_year
     last_month_seen: Optional[int] = None
 
     def set_month_from_line(line: str) -> None:
         nonlocal current_month, current_year, last_month_seen
-        m = MONTH_RE.search(line)
+
+        m = MONTH_YEAR_RE.search(line)
         if not m:
             return
-        mon = m.group(1).upper()
-        mnum = MONTHS.get(mon)
+
+        mon_txt = (m.group(1) or "").upper()
+        yr_txt = (m.group(2) or "").strip()
+
+        mnum = MONTHS.get(mon_txt)
         if not mnum:
             return
 
-        # Handle rollover: Dec -> Jan means year +1
-        if last_month_seen == 12 and mnum == 1:
+        # If the line contains an explicit year, trust it.
+        if yr_txt.isdigit():
+            current_year = int(yr_txt)
+
+        # Otherwise handle rollover: Dec -> Jan = year + 1
+        elif last_month_seen == 12 and mnum == 1:
             current_year += 1
 
         current_month = mnum
@@ -123,20 +127,21 @@ def parse_bom_pdf(pdf_path: str, base_year: int) -> Dict[str, List[TideEvent]]:
             text = page.extract_text() or ""
             lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
 
-            # Month detection first (anywhere in any line)
+            # Detect month/year anywhere on the page
             for ln in lines:
                 set_month_from_line(ln)
 
+            # If we still haven't found a month, skip page
             if not current_month:
                 continue
 
-            # Parse day rows by tokens:
-            # Expect a row beginning with day number, followed by (time height) pairs.
+            # Parse rows: day number then (time height) pairs
             for ln in lines:
                 toks = ln.split()
                 if not toks:
                     continue
 
+                # Day token must be a pure digit 1-31
                 if not toks[0].isdigit():
                     continue
 
@@ -144,13 +149,11 @@ def parse_bom_pdf(pdf_path: str, base_year: int) -> Dict[str, List[TideEvent]]:
                 if not (1 <= day_num <= 31):
                     continue
 
-                # Gather time/height pairs from remaining tokens
                 pairs: List[Tuple[str, float]] = []
                 i = 1
                 while i + 1 < len(toks):
                     t = toks[i]
                     h = toks[i + 1]
-
                     if TIME_RE.fullmatch(t) and FLOAT_RE.fullmatch(h):
                         hf = safe_float(h)
                         if hf is not None:
@@ -159,11 +162,9 @@ def parse_bom_pdf(pdf_path: str, base_year: int) -> Dict[str, List[TideEvent]]:
                             continue
                     i += 1
 
-                # Need at least 2 events to be useful
                 if len(pairs) < 2:
                     continue
 
-                # Build date key
                 try:
                     dkey = date(current_year, current_month, day_num).isoformat()
                 except ValueError:
@@ -172,7 +173,6 @@ def parse_bom_pdf(pdf_path: str, base_year: int) -> Dict[str, List[TideEvent]]:
                 for t, h in pairs:
                     add_event(dkey, t, h)
 
-    # Sort each day’s events by time
     for k in list(data.keys()):
         data[k] = sorted(data[k], key=lambda e: e.time_hhmm)
 
@@ -184,20 +184,11 @@ def parse_bom_pdf(pdf_path: str, base_year: int) -> Dict[str, List[TideEvent]]:
 # -----------------------------
 
 def build_low_to_high_pairs(events: List[TideEvent]) -> List[Dict[str, Any]]:
-    """
-    Turn daily events into low->high pairs.
-
-    Strategy:
-    - Sort by time
-    - Determine which points are "lows" vs "highs" via local extrema
-    - Pair each LOW with the next HIGH after it
-    """
     if len(events) < 2:
         return []
 
     ev = sorted(events, key=lambda e: e.time_hhmm)
 
-    # classify each as low/high using local extrema
     classified: List[Tuple[str, float, str]] = []
     heights = [e.height_m for e in ev]
 
@@ -214,7 +205,6 @@ def build_low_to_high_pairs(events: List[TideEvent]) -> List[Dict[str, Any]]:
             elif e.height_m >= prev_h and e.height_m >= next_h:
                 kind = "high"
             else:
-                # fallback
                 kind = "high" if e.height_m > prev_h else "low"
 
         classified.append((e.time_hhmm, round(e.height_m, 2), kind))
@@ -227,7 +217,6 @@ def build_low_to_high_pairs(events: List[TideEvent]) -> List[Dict[str, Any]]:
             i += 1
             continue
 
-        # find next high after it
         j = i + 1
         while j < len(classified) and classified[j][2] != "high":
             j += 1
@@ -269,7 +258,6 @@ def main() -> None:
 
     os.makedirs("tmp", exist_ok=True)
 
-    # PDF source selection
     if os.path.exists(local_pdf):
         pdf_path = local_pdf
         source_pdf = local_pdf
@@ -280,17 +268,27 @@ def main() -> None:
     else:
         raise SystemExit(f"Missing PDF source. Put PDF at '{local_pdf}' OR set BOM_PDF_URL.")
 
-    # Parse PDF
+    print("=== ENV CHECK ===")
+    print("DAYS_AHEAD=", days_ahead)
+    print("HIGH_THRESHOLD=", high_thr)
+    print("MOVE_THRESHOLD=", move_thr)
+    print("TZ_LABEL=", tz_label)
+    print("PDF=", pdf_path)
+    print("=================")
+
     data = parse_bom_pdf(pdf_path, start.year)
 
-    # Debug summary (helps immediately in Actions log)
-    # Count all parsed day keys and the next 120 days available
     parsed_keys = sorted(data.keys())
     print(f"Parsed {len(parsed_keys)} date keys from PDF.")
     if parsed_keys:
-        print(f"First key: {parsed_keys[0]}  |  Last key: {parsed_keys[-1]}")
+        print(f"First key: {parsed_keys[0]} | Last key: {parsed_keys[-1]}")
+        # Show one sample day so we know events look sane
+        sample = parsed_keys[0]
+        print("Sample day:", sample, "events:", [(e.time_hhmm, round(e.height_m, 2)) for e in data[sample]])
+    else:
+        # Fail loud so you don't get empty JSON silently
+        raise SystemExit("ERROR: Parsed 0 date keys. Month headings likely not detected or PDF text extraction failed.")
 
-    # Build output for requested window
     days_out: List[Dict[str, Any]] = []
     d = start
     while d <= end:
@@ -302,7 +300,6 @@ def main() -> None:
                 max_high = max(p["high_m"] for p in pairs)
                 max_move = max(p["move_m"] for p in pairs)
 
-                # Thresholds: set to 0 in workflow to include all days
                 if (high_thr <= 0 or max_high >= high_thr) or (move_thr <= 0 or max_move >= move_thr):
                     days_out.append({
                         "date": key,
@@ -312,7 +309,6 @@ def main() -> None:
                     })
         d += timedelta(days=1)
 
-    # Sort by biggest movement (site takes Top 10)
     days_out.sort(key=lambda x: x["max_move_m"], reverse=True)
 
     out = {
