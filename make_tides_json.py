@@ -5,17 +5,21 @@ import os
 import re
 import json
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import datetime, timedelta, date
 from typing import Dict, List, Tuple, Any, Optional
 
 import pdfplumber
 import requests
 
+try:
+    from zoneinfo import ZoneInfo
+except Exception:
+    ZoneInfo = None
+
 
 # -----------------------------
 # Month detection (FULL + ABBR)
 # -----------------------------
-
 MONTHS = {
     "JANUARY": 1, "JAN": 1,
     "FEBRUARY": 2, "FEB": 2,
@@ -31,26 +35,41 @@ MONTHS = {
     "DECEMBER": 12, "DEC": 12,
 }
 
-# Match "FEBRUARY" or "FEB", optionally followed by a year like "2026"
 MONTH_YEAR_RE = re.compile(
     r"\b(" + "|".join(sorted(MONTHS.keys(), key=len, reverse=True)) + r")\b(?:\s+(\d{4}))?",
     re.IGNORECASE
 )
 
 TIME_RE = re.compile(r"^\d{3,4}$")
-FLOAT_RE = re.compile(r"^[0-9]+\.[0-9]+$")
 
 
 # -----------------------------
 # Helpers
 # -----------------------------
+def melb_today(tz_label: str) -> date:
+    if ZoneInfo is None:
+        # Fallback: still works, but uses runner local (UTC)
+        return datetime.utcnow().date()
+    try:
+        return datetime.now(ZoneInfo(tz_label)).date()
+    except Exception:
+        return datetime.utcnow().date()
 
 def ztime(t: str) -> str:
     return t.strip().zfill(4)
 
-def safe_float(x: str) -> Optional[float]:
+def safe_height(token: str) -> Optional[float]:
+    """
+    BoM tables sometimes produce tokens with stray chars.
+    Keep digits + dot only.
+    """
+    if token is None:
+        return None
+    s = "".join(ch for ch in token.strip() if (ch.isdigit() or ch == "."))
+    if not s or s.count(".") > 1:
+        return None
     try:
-        return float(x)
+        return float(s)
     except Exception:
         return None
 
@@ -64,8 +83,8 @@ def download_pdf(url: str, out_path: str) -> None:
     with open(out_path, "wb") as f:
         f.write(r.content)
 
-def iso_today_local() -> str:
-    return date.today().isoformat()
+def iso_today_local(tz_label: str) -> str:
+    return melb_today(tz_label).isoformat()
 
 
 @dataclass(frozen=True)
@@ -75,26 +94,19 @@ class TideEvent:
 
 
 # -----------------------------
-# PDF Parsing (token-based, loud failures)
+# Parsing strategy A: extract_text tokens
 # -----------------------------
-
-def parse_bom_pdf(pdf_path: str, base_year: int) -> Dict[str, List[TideEvent]]:
-    if not os.path.exists(pdf_path):
-        raise FileNotFoundError(f"PDF not found: {pdf_path}")
-
+def parse_from_text(pdf: pdfplumber.PDF, base_year: int) -> Dict[str, List[TideEvent]]:
     data: Dict[str, List[TideEvent]] = {}
-
     current_month: Optional[int] = None
     current_year: int = base_year
     last_month_seen: Optional[int] = None
 
     def set_month_from_line(line: str) -> None:
         nonlocal current_month, current_year, last_month_seen
-
         m = MONTH_YEAR_RE.search(line)
         if not m:
             return
-
         mon_txt = (m.group(1) or "").upper()
         yr_txt = (m.group(2) or "").strip()
 
@@ -102,11 +114,8 @@ def parse_bom_pdf(pdf_path: str, base_year: int) -> Dict[str, List[TideEvent]]:
         if not mnum:
             return
 
-        # If the line contains an explicit year, trust it.
         if yr_txt.isdigit():
             current_year = int(yr_txt)
-
-        # Otherwise handle rollover: Dec -> Jan = year + 1
         elif last_month_seen == 12 and mnum == 1:
             current_year += 1
 
@@ -115,47 +124,127 @@ def parse_bom_pdf(pdf_path: str, base_year: int) -> Dict[str, List[TideEvent]]:
 
     def add_event(dkey: str, t: str, h: float) -> None:
         data.setdefault(dkey, [])
-        t = ztime(t)
-        h = float(h)
-        tup = (t, round(h, 2))
+        t2 = ztime(t)
+        tup = (t2, round(h, 2))
         existing = {(e.time_hhmm, round(e.height_m, 2)) for e in data[dkey]}
         if tup not in existing:
-            data[dkey].append(TideEvent(t, h))
+            data[dkey].append(TideEvent(t2, h))
 
-    with pdfplumber.open(pdf_path) as pdf:
-        for page in pdf.pages:
-            text = page.extract_text() or ""
-            lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    for page in pdf.pages:
+        text = page.extract_text() or ""
+        lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
 
-            # Detect month/year anywhere on the page
-            for ln in lines:
-                set_month_from_line(ln)
+        for ln in lines:
+            set_month_from_line(ln)
 
-            # If we still haven't found a month, skip page
-            if not current_month:
+        if not current_month:
+            continue
+
+        for ln in lines:
+            toks = ln.split()
+            if not toks or not toks[0].isdigit():
+                continue
+            day_num = int(toks[0])
+            if not (1 <= day_num <= 31):
                 continue
 
-            # Parse rows: day number then (time height) pairs
-            for ln in lines:
-                toks = ln.split()
-                if not toks:
-                    continue
+            pairs: List[Tuple[str, float]] = []
+            i = 1
+            while i + 1 < len(toks):
+                t = toks[i]
+                htok = toks[i + 1]
+                if TIME_RE.fullmatch(t):
+                    hf = safe_height(htok)
+                    if hf is not None:
+                        pairs.append((ztime(t), hf))
+                        i += 2
+                        continue
+                i += 1
 
-                # Day token must be a pure digit 1-31
-                if not toks[0].isdigit():
-                    continue
+            if len(pairs) < 2:
+                continue
 
-                day_num = int(toks[0])
+            try:
+                dkey = date(current_year, current_month, day_num).isoformat()
+            except ValueError:
+                continue
+
+            for t, h in pairs:
+                add_event(dkey, t, h)
+
+    for k in list(data.keys()):
+        data[k] = sorted(data[k], key=lambda e: e.time_hhmm)
+
+    return data
+
+
+# -----------------------------
+# Parsing strategy B: extract_tables fallback
+# -----------------------------
+def parse_from_tables(pdf: pdfplumber.PDF, base_year: int) -> Dict[str, List[TideEvent]]:
+    data: Dict[str, List[TideEvent]] = {}
+    current_month: Optional[int] = None
+    current_year: int = base_year
+    last_month_seen: Optional[int] = None
+
+    def set_month_from_line(line: str) -> None:
+        nonlocal current_month, current_year, last_month_seen
+        m = MONTH_YEAR_RE.search(line)
+        if not m:
+            return
+        mon_txt = (m.group(1) or "").upper()
+        yr_txt = (m.group(2) or "").strip()
+        mnum = MONTHS.get(mon_txt)
+        if not mnum:
+            return
+
+        if yr_txt.isdigit():
+            current_year = int(yr_txt)
+        elif last_month_seen == 12 and mnum == 1:
+            current_year += 1
+
+        current_month = mnum
+        last_month_seen = mnum
+
+    def add_event(dkey: str, t: str, h: float) -> None:
+        data.setdefault(dkey, [])
+        t2 = ztime(t)
+        tup = (t2, round(h, 2))
+        existing = {(e.time_hhmm, round(e.height_m, 2)) for e in data[dkey]}
+        if tup not in existing:
+            data[dkey].append(TideEvent(t2, h))
+
+    for page in pdf.pages:
+        text = page.extract_text() or ""
+        for ln in (l.strip() for l in text.splitlines() if l.strip()):
+            set_month_from_line(ln)
+
+        if not current_month:
+            continue
+
+        # Try extracting tables
+        tables = page.extract_tables() or []
+        for table in tables:
+            for row in table:
+                if not row:
+                    continue
+                # Row often: [day, time, height, time, height, ...] with blanks
+                cells = [c.strip() for c in row if c and c.strip()]
+                if not cells:
+                    continue
+                if not cells[0].isdigit():
+                    continue
+                day_num = int(cells[0])
                 if not (1 <= day_num <= 31):
                     continue
 
                 pairs: List[Tuple[str, float]] = []
                 i = 1
-                while i + 1 < len(toks):
-                    t = toks[i]
-                    h = toks[i + 1]
-                    if TIME_RE.fullmatch(t) and FLOAT_RE.fullmatch(h):
-                        hf = safe_float(h)
+                while i + 1 < len(cells):
+                    t = cells[i]
+                    htok = cells[i + 1]
+                    if TIME_RE.fullmatch(t):
+                        hf = safe_height(htok)
                         if hf is not None:
                             pairs.append((ztime(t), hf))
                             i += 2
@@ -182,16 +271,14 @@ def parse_bom_pdf(pdf_path: str, base_year: int) -> Dict[str, List[TideEvent]]:
 # -----------------------------
 # Pair building (low -> next high)
 # -----------------------------
-
 def build_low_to_high_pairs(events: List[TideEvent]) -> List[Dict[str, Any]]:
     if len(events) < 2:
         return []
 
     ev = sorted(events, key=lambda e: e.time_hhmm)
-
-    classified: List[Tuple[str, float, str]] = []
     heights = [e.height_m for e in ev]
 
+    classified: List[Tuple[str, float, str]] = []
     for i, e in enumerate(ev):
         if i == 0:
             kind = "low" if heights[i] <= heights[i + 1] else "high"
@@ -206,7 +293,6 @@ def build_low_to_high_pairs(events: List[TideEvent]) -> List[Dict[str, Any]]:
                 kind = "high"
             else:
                 kind = "high" if e.height_m > prev_h else "low"
-
         classified.append((e.time_hhmm, round(e.height_m, 2), kind))
 
     pairs: List[Dict[str, Any]] = []
@@ -216,13 +302,11 @@ def build_low_to_high_pairs(events: List[TideEvent]) -> List[Dict[str, Any]]:
         if kind != "low":
             i += 1
             continue
-
         j = i + 1
         while j < len(classified) and classified[j][2] != "high":
             j += 1
         if j >= len(classified):
             break
-
         t_high, h_high, _ = classified[j]
         if h_high <= h_low:
             i += 1
@@ -243,7 +327,6 @@ def build_low_to_high_pairs(events: List[TideEvent]) -> List[Dict[str, Any]]:
 # -----------------------------
 # Main
 # -----------------------------
-
 def main() -> None:
     local_pdf = os.environ.get("LOCAL_PDF_PATH", "data/IDO59001_2026_VIC_TP013.pdf").strip()
     bom_pdf_url = os.environ.get("BOM_PDF_URL", "").strip()
@@ -253,7 +336,7 @@ def main() -> None:
     move_thr = float(os.environ.get("MOVE_THRESHOLD", "0"))
     tz_label = os.environ.get("TZ_LABEL", "Australia/Melbourne")
 
-    start = date.today()
+    start = melb_today(tz_label)
     end = start + timedelta(days=days_ahead)
 
     os.makedirs("tmp", exist_ok=True)
@@ -269,6 +352,8 @@ def main() -> None:
         raise SystemExit(f"Missing PDF source. Put PDF at '{local_pdf}' OR set BOM_PDF_URL.")
 
     print("=== ENV CHECK ===")
+    print("START=", start)
+    print("END=", end)
     print("DAYS_AHEAD=", days_ahead)
     print("HIGH_THRESHOLD=", high_thr)
     print("MOVE_THRESHOLD=", move_thr)
@@ -276,18 +361,23 @@ def main() -> None:
     print("PDF=", pdf_path)
     print("=================")
 
-    data = parse_bom_pdf(pdf_path, start.year)
+    with pdfplumber.open(pdf_path) as pdf:
+        # Try text parse first
+        data = parse_from_text(pdf, start.year)
+        print(f"[text] Parsed {len(data)} date keys.")
+
+        # Fallback to tables if text parse looks broken
+        if len(data) < 10:
+            data2 = parse_from_tables(pdf, start.year)
+            print(f"[tables] Parsed {len(data2)} date keys.")
+            if len(data2) > len(data):
+                data = data2
+
+    if not data:
+        raise SystemExit("ERROR: Parsed 0 date keys from PDF (text + tables). PDF may be image-only.")
 
     parsed_keys = sorted(data.keys())
-    print(f"Parsed {len(parsed_keys)} date keys from PDF.")
-    if parsed_keys:
-        print(f"First key: {parsed_keys[0]} | Last key: {parsed_keys[-1]}")
-        # Show one sample day so we know events look sane
-        sample = parsed_keys[0]
-        print("Sample day:", sample, "events:", [(e.time_hhmm, round(e.height_m, 2)) for e in data[sample]])
-    else:
-        # Fail loud so you don't get empty JSON silently
-        raise SystemExit("ERROR: Parsed 0 date keys. Month headings likely not detected or PDF text extraction failed.")
+    print(f"First key: {parsed_keys[0]} | Last key: {parsed_keys[-1]}")
 
     days_out: List[Dict[str, Any]] = []
     d = start
@@ -315,7 +405,7 @@ def main() -> None:
         "source": "Bureau of Meteorology (BoM) tide tables – Western Port (Stony Point)",
         "source_pdf": source_pdf,
         "timezone": tz_label,
-        "generated_on": iso_today_local(),
+        "generated_on": iso_today_local(tz_label),
         "days_ahead": days_ahead,
         "thresholds": {"high_m": high_thr, "move_m": move_thr},
         "days": days_out,
