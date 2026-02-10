@@ -9,10 +9,25 @@ MONTHS = {
 }
 
 def download(url: str, out_path: str):
-    r = requests.get(url, timeout=60)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+        "Accept": "application/pdf,*/*;q=0.8",
+        "Accept-Language": "en-AU,en;q=0.9",
+        "Referer": "https://www.bom.gov.au/",
+    }
+
+    r = requests.get(url, headers=headers, timeout=60, allow_redirects=True)
+
+    # Fallback if BOM blocks the www host
+    if r.status_code == 403 and "bom.gov.au" in url:
+        alt = url.replace("https://www.bom.gov.au", "https://reg.bom.gov.au")
+        r = requests.get(alt, headers=headers, timeout=60, allow_redirects=True)
+
     r.raise_for_status()
+
     with open(out_path, "wb") as f:
         f.write(r.content)
+
 
 def parse_bom_pdf(pdf_path: str, year: int):
     data = {}
