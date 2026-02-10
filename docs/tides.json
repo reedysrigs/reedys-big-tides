@@ -1,0 +1,12 @@
+{
+  "source": "Bureau of Meteorology (BoM) tide tables \u2013 Western Port (Stony Point)",
+  "source_pdf": "https://www.bom.gov.au/ntc/IDO59001/IDO59001_2026_VIC_TP013.pdf",
+  "timezone": "Australia/Melbourne",
+  "generated_on": "2026-02-10",
+  "days_ahead": 60,
+  "thresholds": {
+    "high_m": 2.8,
+    "move_m": 2.2
+  },
+  "days": []
+}
