@@ -6,7 +6,7 @@ import json
 import os
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional
 
 
 @dataclass(frozen=True)
@@ -16,39 +16,33 @@ class TideEvent:
 
 
 def ztime(t: str) -> str:
-    t = t.strip()
+    t = str(t).strip()
+    t = t.replace(":", "")
     return t.zfill(4)
+
+
+def valid_iso(d: str) -> bool:
+    try:
+        datetime.strptime(d, "%Y-%m-%d")
+        return True
+    except Exception:
+        return False
 
 
 def iso_today_local() -> str:
     return date.today().isoformat()
 
 
-def safe_float(x: str) -> Optional[float]:
-    try:
-        return float(x)
-    except Exception:
-        return None
-
-
 def load_csv(path: str) -> Dict[str, List[TideEvent]]:
-    """
-    Expects CSV columns:
-      date,time,height_m
-    where:
-      date = YYYY-MM-DD
-      time = HHMM (or HMM) (local time)
-      height_m = metres
-    """
     if not os.path.exists(path):
         raise FileNotFoundError(f"CSV not found: {path}")
 
     data: Dict[str, List[TideEvent]] = {}
     with open(path, "r", encoding="utf-8-sig", newline="") as f:
         reader = csv.DictReader(f)
-        required = {"date", "time", "height_m"}
-        if not reader.fieldnames or not required.issubset(set(reader.fieldnames)):
-            raise ValueError(f"CSV must have headers: {sorted(required)}. Got: {reader.fieldnames}")
+        req = {"date", "time", "height_m"}
+        if not reader.fieldnames or not req.issubset(set(reader.fieldnames)):
+            raise ValueError(f"CSV must have headers {sorted(req)}; got {reader.fieldnames}")
 
         for row in reader:
             d = (row.get("date") or "").strip()
@@ -57,59 +51,49 @@ def load_csv(path: str) -> Dict[str, List[TideEvent]]:
 
             if not d or not t or not h:
                 continue
-
-            # validate date
-            try:
-                _ = datetime.strptime(d, "%Y-%m-%d")
-            except Exception:
+            if not valid_iso(d):
                 continue
 
-            hf = safe_float(h)
-            if hf is None:
+            try:
+                hf = float(h)
+            except Exception:
                 continue
 
             data.setdefault(d, []).append(TideEvent(ztime(t), float(hf)))
 
-    # sort each day
     for k in list(data.keys()):
         data[k] = sorted(data[k], key=lambda e: e.time_hhmm)
-
     return data
 
 
-def build_low_to_high_pairs(events: List[TideEvent]) -> List[Dict[str, Any]]:
-    """
-    Pair each LOW with the next HIGH after it.
-    """
+def build_low_to_high_moves(events: List[TideEvent]) -> List[dict]:
+    # find LOW then next HIGH after it (based on height trend)
     if len(events) < 2:
         return []
 
     ev = sorted(events, key=lambda e: e.time_hhmm)
-    heights = [e.height_m for e in ev]
+    h = [e.height_m for e in ev]
 
-    classified: List[Tuple[str, float, str]] = []
+    classified = []
     for i, e in enumerate(ev):
         if i == 0:
-            kind = "low" if heights[i] <= heights[i + 1] else "high"
+            kind = "low" if h[i] <= h[i + 1] else "high"
         elif i == len(ev) - 1:
-            kind = "high" if heights[i] >= heights[i - 1] else "low"
+            kind = "high" if h[i] >= h[i - 1] else "low"
         else:
-            prev_h = heights[i - 1]
-            next_h = heights[i + 1]
-            if e.height_m <= prev_h and e.height_m <= next_h:
+            if e.height_m <= h[i - 1] and e.height_m <= h[i + 1]:
                 kind = "low"
-            elif e.height_m >= prev_h and e.height_m >= next_h:
+            elif e.height_m >= h[i - 1] and e.height_m >= h[i + 1]:
                 kind = "high"
             else:
-                kind = "high" if e.height_m > prev_h else "low"
-
+                kind = "high" if e.height_m > h[i - 1] else "low"
         classified.append((e.time_hhmm, round(e.height_m, 2), kind))
 
-    pairs: List[Dict[str, Any]] = []
+    moves = []
     i = 0
     while i < len(classified):
-        t_low, h_low, kind = classified[i]
-        if kind != "low":
+        t1, v1, k1 = classified[i]
+        if k1 != "low":
             i += 1
             continue
 
@@ -119,76 +103,63 @@ def build_low_to_high_pairs(events: List[TideEvent]) -> List[Dict[str, Any]]:
         if j >= len(classified):
             break
 
-        t_high, h_high, _ = classified[j]
-        if h_high <= h_low:
-            i += 1
-            continue
-
-        pairs.append({
-            "low_time": t_low,
-            "low_m": round(h_low, 2),
-            "high_time": t_high,
-            "high_m": round(h_high, 2),
-            "move_m": round(h_high - h_low, 2),
-        })
+        t2, v2, _ = classified[j]
+        if v2 > v1:
+            moves.append({
+                "low_time": t1,
+                "low_m": v1,
+                "high_time": t2,
+                "high_m": v2,
+                "move_m": round(v2 - v1, 2),
+            })
         i = j + 1
 
-    return pairs
+    return moves
 
 
 def main() -> None:
-    csv_path = os.environ.get("LOCAL_CSV_PATH", "data/stony_point_2026_tides.csv").strip()
+    csv_path = os.environ.get("LOCAL_CSV_PATH", "data/westernport_tides_2026.csv").strip()
     days_ahead = int(os.environ.get("DAYS_AHEAD", "60"))
-    high_thr = float(os.environ.get("HIGH_THRESHOLD", "0"))
-    move_thr = float(os.environ.get("MOVE_THRESHOLD", "0"))
     tz_label = os.environ.get("TZ_LABEL", "Australia/Melbourne")
 
     start = date.today()
     end = start + timedelta(days=days_ahead)
 
     data = load_csv(csv_path)
-    keys = sorted(data.keys())
-    print(f"Loaded {len(keys)} day keys from CSV.")
-    if keys:
-        print(f"First: {keys[0]} | Last: {keys[-1]}")
 
-    days_out: List[Dict[str, Any]] = []
+    days_out: List[dict] = []
     d = start
     while d <= end:
         key = d.isoformat()
         events = data.get(key, [])
         if events:
-            pairs = build_low_to_high_pairs(events)
-            if pairs:
-                max_high = max(p["high_m"] for p in pairs)
-                max_move = max(p["move_m"] for p in pairs)
-
-                if (high_thr <= 0 or max_high >= high_thr) or (move_thr <= 0 or max_move >= move_thr):
-                    days_out.append({
-                        "date": key,
-                        "pairs": pairs,
-                        "max_high_m": round(max_high, 2),
-                        "max_move_m": round(max_move, 2),
-                    })
+            moves = build_low_to_high_moves(events)
+            if moves:
+                max_move = max(m["move_m"] for m in moves)
+                days_out.append({
+                    "date": key,
+                    "moves": moves,
+                    "max_move_m": round(max_move, 2),
+                })
         d += timedelta(days=1)
 
-    days_out.sort(key=lambda x: x["max_move_m"], reverse=True)
+    # Top 10 biggest moves in the next N days
+    top10 = sorted(days_out, key=lambda x: x["max_move_m"], reverse=True)[:10]
 
     out = {
-        "source": "Bureau of Meteorology (BoM) tide tables – Western Port (Stony Point)",
+        "source": "BoM tide tables – Western Port (Stony Point)",
         "source_csv": csv_path,
         "timezone": tz_label,
         "generated_on": iso_today_local(),
         "days_ahead": days_ahead,
-        "thresholds": {"high_m": high_thr, "move_m": move_thr},
-        "days": days_out,
+        "top10": top10
     }
 
     os.makedirs("docs", exist_ok=True)
     with open("docs/tides.json", "w", encoding="utf-8") as f:
         json.dump(out, f, indent=2)
 
-    print(f"Wrote docs/tides.json with {len(days_out)} day(s) ({start} → {end}).")
+    print(f"Wrote docs/tides.json with top10={len(top10)} (window {start} → {end}).")
 
 
 if __name__ == "__main__":
