@@ -1,12 +1,153 @@
 {
   "source": "BoM tide tables \u2013 Western Port (Stony Point)",
-  "source_csv": "data/stony_point_2026_tides.csv",
+  "source_csv": "data/westernport_tides_2026.csv",
   "timezone": "Australia/Melbourne",
-  "generated_on": "2026-02-10",
+  "generated_on": "2026-02-11",
   "days_ahead": 60,
-  "thresholds": {
-    "high_m": 0,
-    "move_m": 0
-  },
-  "days": []
+  "top10": [
+    {
+      "date": "2026-03-24",
+      "moves": [
+        {
+          "low_time": "1113",
+          "low_m": 0.22,
+          "high_time": "1815",
+          "high_m": 3.15,
+          "move_m": 2.93
+        }
+      ],
+      "max_move_m": 2.93
+    },
+    {
+      "date": "2026-03-25",
+      "moves": [
+        {
+          "low_time": "1156",
+          "low_m": 0.2,
+          "high_time": "1900",
+          "high_m": 3.1,
+          "move_m": 2.9
+        }
+      ],
+      "max_move_m": 2.9
+    },
+    {
+      "date": "2026-03-23",
+      "moves": [
+        {
+          "low_time": "1030",
+          "low_m": 0.32,
+          "high_time": "1729",
+          "high_m": 3.13,
+          "move_m": 2.81
+        }
+      ],
+      "max_move_m": 2.81
+    },
+    {
+      "date": "2026-03-26",
+      "moves": [
+        {
+          "low_time": "0030",
+          "low_m": 0.96,
+          "high_time": "0630",
+          "high_m": 2.77,
+          "move_m": 1.81
+        },
+        {
+          "low_time": "1238",
+          "low_m": 0.25,
+          "high_time": "1945",
+          "high_m": 2.99,
+          "move_m": 2.74
+        }
+      ],
+      "max_move_m": 2.74
+    },
+    {
+      "date": "2026-02-24",
+      "moves": [
+        {
+          "low_time": "1217",
+          "low_m": 0.27,
+          "high_time": "1913",
+          "high_m": 2.97,
+          "move_m": 2.7
+        }
+      ],
+      "max_move_m": 2.7
+    },
+    {
+      "date": "2026-02-25",
+      "moves": [
+        {
+          "low_time": "0042",
+          "low_m": 0.9,
+          "high_time": "0648",
+          "high_m": 2.8,
+          "move_m": 1.9
+        },
+        {
+          "low_time": "1257",
+          "low_m": 0.25,
+          "high_time": "1915",
+          "high_m": 2.9,
+          "move_m": 2.65
+        }
+      ],
+      "max_move_m": 2.65
+    },
+    {
+      "date": "2026-02-23",
+      "moves": [
+        {
+          "low_time": "1138",
+          "low_m": 0.36,
+          "high_time": "1827",
+          "high_m": 2.98,
+          "move_m": 2.62
+        }
+      ],
+      "max_move_m": 2.62
+    },
+    {
+      "date": "2026-04-07",
+      "moves": [
+        {
+          "low_time": "0955",
+          "low_m": 0.45,
+          "high_time": "1651",
+          "high_m": 3.04,
+          "move_m": 2.59
+        }
+      ],
+      "max_move_m": 2.59
+    },
+    {
+      "date": "2026-04-06",
+      "moves": [
+        {
+          "low_time": "0921",
+          "low_m": 0.47,
+          "high_time": "1618",
+          "high_m": 3.05,
+          "move_m": 2.58
+        }
+      ],
+      "max_move_m": 2.58
+    },
+    {
+      "date": "2026-03-22",
+      "moves": [
+        {
+          "low_time": "0946",
+          "low_m": 0.49,
+          "high_time": "1641",
+          "high_m": 3.04,
+          "move_m": 2.55
+        }
+      ],
+      "max_move_m": 2.55
+    }
+  ]
 }
