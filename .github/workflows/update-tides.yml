@@ -2,7 +2,7 @@ name: Update tides.json
 
 on:
   schedule:
-    - cron: "15 19 * * *" # daily (UTC) ~ early morning Melbourne
+    - cron: "15 19 * * *" # daily UTC (~early morning Melbourne)
   workflow_dispatch: {}
 
 permissions:
@@ -17,19 +17,13 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      LOCAL_CSV_PATH: "data/westernport_tides_2026.csv"
       DAYS_AHEAD: "60"
-      HIGH_THRESHOLD: "0"
-      MOVE_THRESHOLD: "0"
       TZ_LABEL: "Australia/Melbourne"
-      # If you want to use a URL instead of the repo PDF, set this as a repo Variable:
-      # Settings → Secrets and variables → Actions → Variables → New variable → BOM_PDF_URL
-      BOM_PDF_URL: ${{ vars.BOM_PDF_URL }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -39,28 +33,16 @@ jobs:
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
 
       - name: Generate tides.json
         run: |
           python make_tides_json.py
-          echo "---- docs/tides.json preview ----"
-          python -c "import json; d=json.load(open('docs/tides.json')); print('days:', len(d.get('days',[]))); print('generated_on:', d.get('generated_on')); print('days_ahead:', d.get('days_ahead'))"
+          echo "---- preview ----"
+          python -c "import json; d=json.load(open('docs/tides.json')); print('generated_on:', d.get('generated_on')); print('top10:', len(d.get('top10', [])))"
 
-      - name: Commit & push if changed
+      - name: Commit changes
         run: |
           git config user.name "tide-bot"
           git config user.email "tide-bot@users.noreply.github.com"
-
           git add docs/tides.json
-
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-            exit 0
-          fi
-
-          git commit -m "Update tides.json"
-
-          # Avoid "fetch first" errors if something else updated main
-          git pull --rebase origin main
-          git push origin HEAD:main
+          git diff --cached --quiet || (git commit -m "Update tides.json" && git push)
