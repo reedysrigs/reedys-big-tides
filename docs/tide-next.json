@@ -1,14 +1,14 @@
 {
   "timezone": "Australia/Melbourne",
-  "generated_on": "2026-02-17",
+  "generated_on": "2026-02-18",
   "wp": {
-    "nextHighISO": "2026-02-18T02:20:00+11:00",
-    "nextLowISO": "2026-02-17T20:00:00+11:00",
-    "nextHigh_m": 2.63,
-    "nextLow_m": 1.0,
-    "range_m": 1.63
+    "nextHighISO": "2026-02-18T14:08:00+11:00",
+    "nextLowISO": "2026-02-18T20:02:00+11:00",
+    "nextHigh_m": 2.35,
+    "nextLow_m": 0.79,
+    "range_m": 1.56
   },
   "ppb": null,
-  "source_wp": "BoM tide tables \u2013 Western Port (Stony Point)",
-  "source_ppb": null
+  "source_wp": "BoM Western Port CSV",
+  "source_ppb": "BoM Williamstown PDF (ERROR: 403 Client Error: Forbidden for url: https://www.bom.gov.au/ntc/IDO59001/IDO59001_2026_VIC_TP003.pdf)"
 }
