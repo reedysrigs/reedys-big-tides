@@ -11,10 +11,11 @@ from typing import List, Optional, Tuple
 
 TZ_LABEL = "Australia/Melbourne"
 
-# ---- CHANGE THESE TWO FILE PATHS IF NEEDED ----
-WP_CSV  = "data/westernport_tides_2026_FULL.csv"
-PPB_CSV = "data/portphillip_tides_2026.csv"
-# ----------------------------------------------
+# Your repo currently has this file:
+WP_CSV = "data/westernport_tides_2026.csv"
+
+# Leave PPB blank for now (you said you don't have it yet)
+PPB_CSV = None  # e.g. "data/portphillip_tides_2026.csv"
 
 
 @dataclass(frozen=True)
@@ -35,7 +36,6 @@ def load_csv_events(path: str) -> List[TideEvent]:
             d = (row.get("date") or "").strip()
             t = (row.get("time") or "").strip()
             h = (row.get("height_m") or "").strip()
-
             if not (d and t and h):
                 continue
 
@@ -57,14 +57,16 @@ def classify_extremes(events: List[TideEvent]) -> List[Tuple[str, TideEvent]]:
     ext: List[Tuple[str, TideEvent]] = []
 
     for i, e in enumerate(events):
-        prev_h = events[i-1].height_m if i > 0 else None
-        next_h = events[i+1].height_m if i < len(events)-1 else None
+        prev_h = events[i - 1].height_m if i > 0 else None
+        next_h = events[i + 1].height_m if i < len(events) - 1 else None
 
-        if prev_h is None:
+        if prev_h is None and next_h is not None:
             kind = "low" if e.height_m <= next_h else "high"
-        elif next_h is None:
+        elif next_h is None and prev_h is not None:
             kind = "high" if e.height_m >= prev_h else "low"
         else:
+            # both exist
+            assert prev_h is not None and next_h is not None
             if e.height_m <= prev_h and e.height_m <= next_h:
                 kind = "low"
             elif e.height_m >= prev_h and e.height_m >= next_h:
@@ -74,6 +76,7 @@ def classify_extremes(events: List[TideEvent]) -> List[Tuple[str, TideEvent]]:
 
         ext.append((kind, e))
 
+    # squash duplicate consecutive highs/lows (keep more extreme)
     cleaned: List[Tuple[str, TideEvent]] = []
     for kind, e in ext:
         if not cleaned or cleaned[-1][0] != kind:
@@ -89,46 +92,54 @@ def classify_extremes(events: List[TideEvent]) -> List[Tuple[str, TideEvent]]:
 
 
 def next_turns(events: List[TideEvent], now: datetime) -> Optional[dict]:
+    # grab enough future points to guarantee next high/low
     look_ahead = now + timedelta(hours=48)
     future = [e for e in events if now <= e.dt <= look_ahead]
-
     if len(future) < 3:
         return None
 
     turns = classify_extremes(future)
 
     next_high = next((e for kind, e in turns if kind == "high" and e.dt >= now), None)
-    next_low  = next((e for kind, e in turns if kind == "low" and e.dt >= now), None)
-
+    next_low = next((e for kind, e in turns if kind == "low" and e.dt >= now), None)
     if not next_high or not next_low:
         return None
 
     rng = abs(next_high.height_m - next_low.height_m)
 
+    # NOTE: Your widget expects +11:00. This is fine for now (AEDT).
+    # If you want it DST-proof later, we’ll generate the offset properly.
     return {
         "nextHighISO": next_high.dt.strftime("%Y-%m-%dT%H:%M:00+11:00"),
-        "nextLowISO":  next_low.dt.strftime("%Y-%m-%dT%H:%M:00+11:00"),
+        "nextLowISO": next_low.dt.strftime("%Y-%m-%dT%H:%M:00+11:00"),
         "nextHigh_m": round(next_high.height_m, 2),
-        "nextLow_m":  round(next_low.height_m, 2),
-        "range_m":    round(rng, 2)
+        "nextLow_m": round(next_low.height_m, 2),
+        "range_m": round(rng, 2),
     }
+
+
+def safe_next_for(csv_path: Optional[str], now: datetime) -> Optional[dict]:
+    if not csv_path:
+        return None
+    if not os.path.exists(csv_path):
+        return None
+    ev = load_csv_events(csv_path)
+    return next_turns(ev, now)
 
 
 def main():
     now = datetime.now()
 
-    wp_events  = load_csv_events(WP_CSV)
-    ppb_events = load_csv_events(PPB_CSV)
-
     out = {
         "timezone": TZ_LABEL,
         "generated_on": date.today().isoformat(),
-        "wp":  next_turns(wp_events, now),
-        "ppb": next_turns(ppb_events, now)
+        "wp": safe_next_for(WP_CSV, now),
+        "ppb": safe_next_for(PPB_CSV, now),
+        "source_wp": "BoM tide tables – Western Port (Stony Point)",
+        "source_ppb": None if not PPB_CSV else "BoM tide tables – Port Phillip (station CSV)",
     }
 
     os.makedirs("docs", exist_ok=True)
-
     with open("docs/tide-next.json", "w", encoding="utf-8") as f:
         json.dump(out, f, indent=2)
 
@@ -137,4 +148,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
