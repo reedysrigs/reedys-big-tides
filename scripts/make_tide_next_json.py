@@ -1,149 +1,190 @@
 #!/usr/bin/env python3
-from __future__ import annotations
-
 import csv
 import json
 import os
+import re
+import requests
+import pdfplumber
 from dataclasses import dataclass
-from datetime import datetime, date, timedelta
-from typing import List, Optional, Tuple
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+from typing import List, Optional
+import io
 
+TZ = ZoneInfo("Australia/Melbourne")
 
-TZ_LABEL = "Australia/Melbourne"
-
-# ✅ Your repo has this exact file name:
+# Western Port CSV (already in your repo)
 WP_CSV = "data/westernport_tides_2026.csv"
 
-# ✅ You said you DON'T have PPB yet, so keep it off for now
-PPB_CSV: Optional[str] = None  # e.g. "data/portphillip_tides_2026.csv"
+# Williamstown (Port Phillip Bay)
+PPB_PDF_URL = "https://www.bom.gov.au/ntc/IDO59001/IDO59001_2026_VIC_TP003.pdf"
+
+OUT_FILE = "docs/tide-next.json"
 
 
-@dataclass(frozen=True)
+@dataclass
 class TideEvent:
     dt: datetime
-    height_m: float
+    height: float
 
 
-def load_csv_events(path: str) -> List[TideEvent]:
+def now():
+    return datetime.now(TZ)
+
+
+def to_iso(dt: datetime):
+    return dt.isoformat()
+
+
+# ==============================
+# WESTERN PORT (CSV)
+# ==============================
+def load_wp_events(path: str) -> List[TideEvent]:
+    events = []
     if not os.path.exists(path):
-        raise FileNotFoundError(path)
+        return events
 
-    out: List[TideEvent] = []
-    with open(path, "r", encoding="utf-8-sig", newline="") as f:
+    with open(path, "r", encoding="utf-8-sig") as f:
         r = csv.DictReader(f)
-
-        # expects headers: date,time,height_m
         for row in r:
-            d = (row.get("date") or "").strip()
-            t = (row.get("time") or "").strip()
-            h = (row.get("height_m") or "").strip()
+            d = row.get("date", "").strip()
+            t = row.get("time", "").strip().replace(":", "")
+            h = row.get("height_m", "").strip()
             if not (d and t and h):
                 continue
-
             try:
-                hhmm = t.replace(":", "").zfill(4)
-                dt = datetime.strptime(f"{d} {hhmm}", "%Y-%m-%d %H%M")
-                out.append(TideEvent(dt=dt, height_m=float(h)))
-            except Exception:
+                dt = datetime.strptime(f"{d} {t}", "%Y-%m-%d %H%M").replace(tzinfo=TZ)
+                events.append(TideEvent(dt, float(h)))
+            except:
                 continue
 
-    out.sort(key=lambda e: e.dt)
-    return out
+    events.sort(key=lambda e: e.dt)
+    return events
 
 
-def classify_extremes(events: List[TideEvent]) -> List[Tuple[str, TideEvent]]:
-    """Label events as turning points (high/low) by comparing neighbours."""
-    if len(events) < 2:
-        return []
+# ==============================
+# PORT PHILLIP (PDF)
+# ==============================
+MONTHS = {
+    "JANUARY": 1, "FEBRUARY": 2, "MARCH": 3, "APRIL": 4,
+    "MAY": 5, "JUNE": 6, "JULY": 7, "AUGUST": 8,
+    "SEPTEMBER": 9, "OCTOBER": 10, "NOVEMBER": 11, "DECEMBER": 12
+}
 
-    ext: List[Tuple[str, TideEvent]] = []
-
-    for i, e in enumerate(events):
-        prev_h = events[i - 1].height_m if i > 0 else None
-        next_h = events[i + 1].height_m if i < len(events) - 1 else None
-
-        if prev_h is None and next_h is not None:
-            kind = "low" if e.height_m <= next_h else "high"
-        elif next_h is None and prev_h is not None:
-            kind = "high" if e.height_m >= prev_h else "low"
-        else:
-            assert prev_h is not None and next_h is not None
-            if e.height_m <= prev_h and e.height_m <= next_h:
-                kind = "low"
-            elif e.height_m >= prev_h and e.height_m >= next_h:
-                kind = "high"
-            else:
-                kind = "high" if e.height_m > prev_h else "low"
-
-        ext.append((kind, e))
-
-    # squash duplicate consecutive highs/lows (keep more extreme)
-    cleaned: List[Tuple[str, TideEvent]] = []
-    for kind, e in ext:
-        if not cleaned or cleaned[-1][0] != kind:
-            cleaned.append((kind, e))
-        else:
-            prev_kind, prev_e = cleaned[-1]
-            if kind == "high" and e.height_m > prev_e.height_m:
-                cleaned[-1] = (kind, e)
-            if kind == "low" and e.height_m < prev_e.height_m:
-                cleaned[-1] = (kind, e)
-
-    return cleaned
+TIME_HEIGHT = re.compile(r"^(\d{4})\s+(\d+\.\d+)$")
 
 
-def next_turns(events: List[TideEvent], now: datetime) -> Optional[dict]:
-    """Find next High + next Low within 48 hours and compute range."""
-    look_ahead = now + timedelta(hours=48)
-    future = [e for e in events if now <= e.dt <= look_ahead]
-    if len(future) < 3:
+def load_ppb_events(url: str, year: int = 2026) -> List[TideEvent]:
+    events = []
+    resp = requests.get(url)
+    resp.raise_for_status()
+
+    with pdfplumber.open(io.BytesIO(resp.content)) as pdf:
+        month = None
+        day = None
+
+        for page in pdf.pages:
+            lines = (page.extract_text() or "").split("\n")
+
+            for line in lines:
+                line = line.strip()
+
+                if line in MONTHS:
+                    month = MONTHS[line]
+                    continue
+
+                if line.isdigit() and len(line) <= 2:
+                    day = int(line)
+                    continue
+
+                m = TIME_HEIGHT.match(line)
+                if m and month and day:
+                    hhmm = m.group(1)
+                    height = float(m.group(2))
+                    hh = int(hhmm[:2])
+                    mm = int(hhmm[2:])
+                    dt = datetime(year, month, day, hh, mm, tzinfo=TZ)
+                    events.append(TideEvent(dt, height))
+
+    events.sort(key=lambda e: e.dt)
+    return events
+
+
+# ==============================
+# Find next high/low
+# ==============================
+def classify(events: List[TideEvent]):
+    highs, lows = [], []
+    for i in range(1, len(events)-1):
+        if events[i].height >= events[i-1].height and events[i].height >= events[i+1].height:
+            highs.append(events[i])
+        if events[i].height <= events[i-1].height and events[i].height <= events[i+1].height:
+            lows.append(events[i])
+    return highs, lows
+
+
+def next_after(events: List[TideEvent], t: datetime):
+    for e in events:
+        if e.dt > t:
+            return e
+    return None
+
+
+def build_payload(events: List[TideEvent]):
+    if not events:
         return None
 
-    turns = classify_extremes(future)
+    current = now()
+    highs, lows = classify(events)
 
-    next_high = next((e for kind, e in turns if kind == "high" and e.dt >= now), None)
-    next_low = next((e for kind, e in turns if kind == "low" and e.dt >= now), None)
-    if not next_high or not next_low:
+    nh = next_after(highs, current)
+    nl = next_after(lows, current)
+
+    if not (nh and nl):
         return None
 
-    rng = abs(next_high.height_m - next_low.height_m)
-
-    # Note: outputs +11:00 (AEDT). If you want DST-proof later, we’ll do it.
     return {
-        "nextHighISO": next_high.dt.strftime("%Y-%m-%dT%H:%M:00+11:00"),
-        "nextLowISO": next_low.dt.strftime("%Y-%m-%dT%H:%M:00+11:00"),
-        "nextHigh_m": round(next_high.height_m, 2),
-        "nextLow_m": round(next_low.height_m, 2),
-        "range_m": round(rng, 2),
+        "nextHighISO": to_iso(nh.dt),
+        "nextLowISO": to_iso(nl.dt),
+        "nextHigh_m": round(nh.height, 2),
+        "nextLow_m": round(nl.height, 2),
+        "range_m": round(abs(nh.height - nl.height), 2)
     }
 
 
-def safe_next_for(csv_path: Optional[str], now: datetime) -> Optional[dict]:
-    if not csv_path:
-        return None
-    if not os.path.exists(csv_path):
-        return None
-    events = load_csv_events(csv_path)
-    return next_turns(events, now)
-
-
-def main() -> None:
-    now = datetime.now()
-
+# ==============================
+# MAIN
+# ==============================
+def main():
     out = {
-        "timezone": TZ_LABEL,
-        "generated_on": date.today().isoformat(),
-        "wp": safe_next_for(WP_CSV, now),
-        "ppb": safe_next_for(PPB_CSV, now),
-        "source_wp": "BoM tide tables – Western Port (Stony Point)",
-        "source_ppb": None if not PPB_CSV else "BoM tide tables – Port Phillip (station CSV)",
+        "timezone": "Australia/Melbourne",
+        "generated_on": now().date().isoformat(),
+        "wp": None,
+        "ppb": None,
+        "source_wp": "BoM Western Port CSV",
+        "source_ppb": "BoM Williamstown PDF"
     }
 
-    os.makedirs("docs", exist_ok=True)
-    with open("docs/tide-next.json", "w", encoding="utf-8") as f:
+    # Western Port
+    try:
+        wp_events = load_wp_events(WP_CSV)
+        out["wp"] = build_payload(wp_events)
+    except Exception as e:
+        out["wp"] = None
+        out["source_wp"] += f" (ERROR: {e})"
+
+    # Port Phillip Bay
+    try:
+        ppb_events = load_ppb_events(PPB_PDF_URL)
+        out["ppb"] = build_payload(ppb_events)
+    except Exception as e:
+        out["ppb"] = None
+        out["source_ppb"] += f" (ERROR: {e})"
+
+    with open(OUT_FILE, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=2)
 
-    print("Wrote docs/tide-next.json")
+    print(json.dumps(out, indent=2))
 
 
 if __name__ == "__main__":
