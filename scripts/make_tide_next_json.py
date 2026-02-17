@@ -11,11 +11,11 @@ from typing import List, Optional, Tuple
 
 TZ_LABEL = "Australia/Melbourne"
 
-# Your repo currently has this file:
+# ✅ Your repo has this exact file name:
 WP_CSV = "data/westernport_tides_2026.csv"
 
-# Leave PPB blank for now (you said you don't have it yet)
-PPB_CSV = None  # e.g. "data/portphillip_tides_2026.csv"
+# ✅ You said you DON'T have PPB yet, so keep it off for now
+PPB_CSV: Optional[str] = None  # e.g. "data/portphillip_tides_2026.csv"
 
 
 @dataclass(frozen=True)
@@ -32,6 +32,7 @@ def load_csv_events(path: str) -> List[TideEvent]:
     with open(path, "r", encoding="utf-8-sig", newline="") as f:
         r = csv.DictReader(f)
 
+        # expects headers: date,time,height_m
         for row in r:
             d = (row.get("date") or "").strip()
             t = (row.get("time") or "").strip()
@@ -51,6 +52,7 @@ def load_csv_events(path: str) -> List[TideEvent]:
 
 
 def classify_extremes(events: List[TideEvent]) -> List[Tuple[str, TideEvent]]:
+    """Label events as turning points (high/low) by comparing neighbours."""
     if len(events) < 2:
         return []
 
@@ -65,7 +67,6 @@ def classify_extremes(events: List[TideEvent]) -> List[Tuple[str, TideEvent]]:
         elif next_h is None and prev_h is not None:
             kind = "high" if e.height_m >= prev_h else "low"
         else:
-            # both exist
             assert prev_h is not None and next_h is not None
             if e.height_m <= prev_h and e.height_m <= next_h:
                 kind = "low"
@@ -92,7 +93,7 @@ def classify_extremes(events: List[TideEvent]) -> List[Tuple[str, TideEvent]]:
 
 
 def next_turns(events: List[TideEvent], now: datetime) -> Optional[dict]:
-    # grab enough future points to guarantee next high/low
+    """Find next High + next Low within 48 hours and compute range."""
     look_ahead = now + timedelta(hours=48)
     future = [e for e in events if now <= e.dt <= look_ahead]
     if len(future) < 3:
@@ -107,8 +108,7 @@ def next_turns(events: List[TideEvent], now: datetime) -> Optional[dict]:
 
     rng = abs(next_high.height_m - next_low.height_m)
 
-    # NOTE: Your widget expects +11:00. This is fine for now (AEDT).
-    # If you want it DST-proof later, we’ll generate the offset properly.
+    # Note: outputs +11:00 (AEDT). If you want DST-proof later, we’ll do it.
     return {
         "nextHighISO": next_high.dt.strftime("%Y-%m-%dT%H:%M:00+11:00"),
         "nextLowISO": next_low.dt.strftime("%Y-%m-%dT%H:%M:00+11:00"),
@@ -123,11 +123,11 @@ def safe_next_for(csv_path: Optional[str], now: datetime) -> Optional[dict]:
         return None
     if not os.path.exists(csv_path):
         return None
-    ev = load_csv_events(csv_path)
-    return next_turns(ev, now)
+    events = load_csv_events(csv_path)
+    return next_turns(events, now)
 
 
-def main():
+def main() -> None:
     now = datetime.now()
 
     out = {
