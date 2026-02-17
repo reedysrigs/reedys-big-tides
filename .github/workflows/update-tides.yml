@@ -36,13 +36,14 @@ jobs:
       - name: Generate tide-next.json
         run: |
           python scripts/make_tide_next_json.py
-          echo "---- preview ----"
-          python -c "import json; d=json.load(open('docs/tide-next.json')); print('generated_on:', d.get('generated_on')); print('wp:', d.get('wp'))"
+          echo "Generated tide-next.json"
+          cat docs/tide-next.json
 
 
       - name: Commit changes
         run: |
           git config user.name "tide-bot"
           git config user.email "tide-bot@users.noreply.github.com"
-         git add docs/tide-next.json
-          git diff --cached --quiet || (git commit -m "Update tides.json" && git push)
+          git add docs/tide-next.json
+          git diff --cached --quiet || git commit -m "Update tide-next.json"
+          git push
