@@ -2,7 +2,7 @@ name: Update tides.json + tide-next.json
 
 on:
   schedule:
-    - cron: "15 19 * * *" # cron is UTC
+    - cron: "15 19 * * *"  # cron is UTC
   workflow_dispatch:
 
 permissions:
