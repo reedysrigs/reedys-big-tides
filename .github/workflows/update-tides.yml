@@ -17,7 +17,9 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      DAYS_AHEAD: "60"
+    WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
+
+    DAYS_AHEAD: "60"
       TZ_LABEL: "Australia/Melbourne"
 
     steps:
