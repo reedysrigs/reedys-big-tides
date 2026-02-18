@@ -24,6 +24,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # SAFE DEBUG: proves GitHub can see your secret (does not print it)
+      - name: Debug secret presence (safe)
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.WORLD_TIDES_API_KEY }}" ]; then
+            echo "Secret is present in GitHub context ✅"
+          else
+            echo "Secret is NOT present in GitHub context ❌"
+            echo "Fix: Settings → Secrets and variables → Actions → Repository secrets → WORLD_TIDES_API_KEY"
+            echo "Also check your workflow/job is NOT using 'environment:' which can gate secrets."
+            exit 1
+          fi
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -34,7 +47,9 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
 
       - name: Resolve Western Port CSV path
         shell: bash
@@ -55,29 +70,40 @@ jobs:
 
       - name: Generate tides.json (Top 10 big moves)
         shell: bash
-        # pass secrets directly to this step too (no ambiguity)
         env:
           WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
-          WORLDTIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
         run: |
           set -euo pipefail
+
+          # Force export for subprocesses too
+          echo "WORLD_TIDES_API_KEY=$WORLD_TIDES_API_KEY" >> "$GITHUB_ENV"
+
           echo "LOCAL_CSV_PATH=${LOCAL_CSV_PATH}"
           python make_tides_json.py
+
           echo "---- preview docs/tides.json ----"
           python -c "import json; d=json.load(open('docs/tides.json')); print('generated_on:', d.get('generated_on')); print('top10:', len(d.get('top10', [])))"
 
       - name: Generate tide-next.json (Next high/low)
         shell: bash
-        # THIS is the key part: provide both possible env var names
         env:
           WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
+          # ALSO set the other common spelling in case the script expects it
           WORLDTIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
         run: |
           set -euo pipefail
 
-          echo "Key present? (lengths)"
+          # Force export for anything python spawns
+          echo "WORLD_TIDES_API_KEY=$WORLD_TIDES_API_KEY" >> "$GITHUB_ENV"
+          echo "WORLDTIDES_API_KEY=$WORLDTIDES_API_KEY" >> "$GITHUB_ENV"
+
           echo "WORLD_TIDES_API_KEY length: ${#WORLD_TIDES_API_KEY}"
           echo "WORLDTIDES_API_KEY length: ${#WORLDTIDES_API_KEY}"
+
+          if [ "${#WORLD_TIDES_API_KEY}" -lt 5 ] && [ "${#WORLDTIDES_API_KEY}" -lt 5 ]; then
+            echo "ERROR: Secret not injected into runtime env."
+            exit 1
+          fi
 
           if [ -f scripts/build_tide_next.py ]; then
             echo "Running: scripts/build_tide_next.py"
