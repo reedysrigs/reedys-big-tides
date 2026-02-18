@@ -9,10 +9,18 @@ from datetime import datetime, date, timedelta
 from typing import Dict, List, Optional
 from zoneinfo import ZoneInfo
 
-
 # ----------------------------
 # Config
 # ----------------------------
+
+# Check if the API key is being passed correctly
+API_KEY = os.getenv("WORLD_TIDES_API_KEY")
+if not API_KEY:
+    print("ERROR: WORLD_TIDES_API_KEY is missing or not passed correctly")
+    exit(1)
+else:
+    print("API Key is set properly ✅")
+
 TZ_LABEL = os.environ.get("TZ_LABEL", "Australia/Melbourne").strip() or "Australia/Melbourne"
 TZ = ZoneInfo(TZ_LABEL)
 
@@ -27,6 +35,7 @@ SOURCE_PPB = None  # later
 # ----------------------------
 # Data model
 # ----------------------------
+
 @dataclass(frozen=True)
 class TideEvent:
     dt: datetime
