@@ -1,5 +1,3 @@
-name: Update tides.json + tide-next.json
-
 on:
   schedule:
     - cron: "15 19 * * *"  # cron is UTC
@@ -17,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}  # Pass the secret here
       DAYS_AHEAD: "60"
       TZ_LABEL: "Australia/Melbourne"
 
@@ -28,12 +27,11 @@ jobs:
       - name: Debug secret presence (safe)
         shell: bash
         run: |
-          if [ -n "${{ secrets.WORLD_TIDES_API_KEY }}" ]; then
+          if [ -n "${WORLD_TIDES_API_KEY}" ]; then
             echo "Secret is present in GitHub context ✅"
           else
             echo "Secret is NOT present in GitHub context ❌"
             echo "Fix: Settings → Secrets and variables → Actions → Repository secrets → WORLD_TIDES_API_KEY"
-            echo "Also check your workflow/job is NOT using 'environment:' which can gate secrets."
             exit 1
           fi
 
@@ -71,7 +69,7 @@ jobs:
       - name: Generate tides.json (Top 10 big moves)
         shell: bash
         env:
-          WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
+          WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}  # Pass secret to Python script
         run: |
           set -euo pipefail
 
@@ -87,9 +85,8 @@ jobs:
       - name: Generate tide-next.json (Next high/low)
         shell: bash
         env:
-          WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
-          # ALSO set the other common spelling in case the script expects it
-          WORLDTIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
+          WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}  # Correct secret usage
+          WORLDTIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}  # Use both keys in case one is expected differently
         run: |
           set -euo pipefail
 
