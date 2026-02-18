@@ -2,7 +2,7 @@ name: Update tides.json + tide-next.json
 
 on:
   schedule:
-    - cron: "15 19 * * *"   # ~6:15am Melbourne (cron uses UTC)
+    - cron: "15 19 * * *" # 6:15am Melbourne during AEDT (cron is UTC)
   workflow_dispatch:
 
 permissions:
@@ -17,9 +17,8 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-    WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
-
-    DAYS_AHEAD: "60"
+      WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
+      DAYS_AHEAD: "60"
       TZ_LABEL: "Australia/Melbourne"
 
     steps:
@@ -37,33 +36,36 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Resolve Western Port CSV path
+        shell: bash
         run: |
-          set -e
+          set -euo pipefail
           echo "Finding WP CSV in ./data ..."
           # Prefer likely names first, then fall back to any CSV in /data
           CSV_CANDIDATE="$(ls -1 data/*westernport*csv 2>/dev/null | head -n 1 || true)"
-          if [ -z "$CSV_CANDIDATE" ]; then
+          if [ -z "${CSV_CANDIDATE}" ]; then
             CSV_CANDIDATE="$(ls -1 data/*.csv 2>/dev/null | head -n 1 || true)"
           fi
-          if [ -z "$CSV_CANDIDATE" ]; then
+          if [ -z "${CSV_CANDIDATE}" ]; then
             echo "ERROR: No CSV found in ./data"
             ls -la data || true
             exit 1
           fi
-          echo "Using CSV: $CSV_CANDIDATE"
-          echo "LOCAL_CSV_PATH=$CSV_CANDIDATE" >> $GITHUB_ENV
+          echo "Using CSV: ${CSV_CANDIDATE}"
+          echo "LOCAL_CSV_PATH=${CSV_CANDIDATE}" >> "${GITHUB_ENV}"
 
       - name: Generate tides.json (Top 10 big moves)
+        shell: bash
         run: |
-          set -e
-          echo "LOCAL_CSV_PATH=$LOCAL_CSV_PATH"
+          set -euo pipefail
+          echo "LOCAL_CSV_PATH=${LOCAL_CSV_PATH}"
           python make_tides_json.py
           echo "---- preview docs/tides.json ----"
           python -c "import json; d=json.load(open('docs/tides.json')); print('generated_on:', d.get('generated_on')); print('top10:', len(d.get('top10', [])))"
 
       - name: Generate tide-next.json (Next high/low)
+        shell: bash
         run: |
-          set -e
+          set -euo pipefail
           if [ -f scripts/build_tide_next.py ]; then
             echo "Running: scripts/build_tide_next.py"
             python scripts/build_tide_next.py
@@ -83,10 +85,15 @@ jobs:
           python -c "import json; d=json.load(open('docs/tide-next.json')); print('generated_on:', d.get('generated_on')); print('wp:', d.get('wp')); print('ppb:', d.get('ppb'))"
 
       - name: Commit changes
+        shell: bash
         run: |
-          set -e
+          set -euo pipefail
           git config user.name "tide-bot"
           git config user.email "tide-bot@users.noreply.github.com"
           git add docs/tides.json docs/tide-next.json
-          git diff --cached --quiet || git commit -m "Update tides.json and tide-next.json"
-          git push
+          if ! git diff --cached --quiet; then
+            git commit -m "Update tides.json and tide-next.json"
+            git push
+          else
+            echo "No changes to commit."
+          fi
