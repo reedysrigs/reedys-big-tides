@@ -2,7 +2,7 @@ name: Update tides.json + tide-next.json
 
 on:
   schedule:
-    - cron: "15 19 * * *" # ~6:15am Melbourne during AEDT (cron is UTC)
+    - cron: "15 19 * * *" # cron is UTC
   workflow_dispatch:
 
 permissions:
@@ -17,9 +17,6 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      # Set this in GitHub: Settings → Secrets and variables → Actions → New repository secret
-      # Name: WORLD_TIDES_API_KEY
-      WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
       DAYS_AHEAD: "60"
       TZ_LABEL: "Australia/Melbourne"
 
@@ -37,9 +34,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then
-            pip install -r requirements.txt
-          fi
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Resolve Western Port CSV path
         shell: bash
@@ -60,6 +55,10 @@ jobs:
 
       - name: Generate tides.json (Top 10 big moves)
         shell: bash
+        # pass secrets directly to this step too (no ambiguity)
+        env:
+          WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
+          WORLDTIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
         run: |
           set -euo pipefail
           echo "LOCAL_CSV_PATH=${LOCAL_CSV_PATH}"
@@ -69,8 +68,17 @@ jobs:
 
       - name: Generate tide-next.json (Next high/low)
         shell: bash
+        # THIS is the key part: provide both possible env var names
+        env:
+          WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
+          WORLDTIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
         run: |
           set -euo pipefail
+
+          echo "Key present? (lengths)"
+          echo "WORLD_TIDES_API_KEY length: ${#WORLD_TIDES_API_KEY}"
+          echo "WORLDTIDES_API_KEY length: ${#WORLDTIDES_API_KEY}"
+
           if [ -f scripts/build_tide_next.py ]; then
             echo "Running: scripts/build_tide_next.py"
             python scripts/build_tide_next.py
