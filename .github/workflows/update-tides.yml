@@ -2,7 +2,7 @@ name: Update tides.json + tide-next.json
 
 on:
   schedule:
-    - cron: "15 19 * * *" # 6:15am Melbourne during AEDT (cron is UTC)
+    - cron: "15 19 * * *" # ~6:15am Melbourne during AEDT (cron is UTC)
   workflow_dispatch:
 
 permissions:
@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      # Set this in GitHub: Settings → Secrets and variables → Actions → New repository secret
+      # Name: WORLD_TIDES_API_KEY
       WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
       DAYS_AHEAD: "60"
       TZ_LABEL: "Australia/Melbourne"
@@ -31,16 +33,19 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
+        shell: bash
         run: |
+          set -euo pipefail
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
 
       - name: Resolve Western Port CSV path
         shell: bash
         run: |
           set -euo pipefail
           echo "Finding WP CSV in ./data ..."
-          # Prefer likely names first, then fall back to any CSV in /data
           CSV_CANDIDATE="$(ls -1 data/*westernport*csv 2>/dev/null | head -n 1 || true)"
           if [ -z "${CSV_CANDIDATE}" ]; then
             CSV_CANDIDATE="$(ls -1 data/*.csv 2>/dev/null | head -n 1 || true)"
@@ -84,16 +89,19 @@ jobs:
           echo "---- preview docs/tide-next.json ----"
           python -c "import json; d=json.load(open('docs/tide-next.json')); print('generated_on:', d.get('generated_on')); print('wp:', d.get('wp')); print('ppb:', d.get('ppb'))"
 
-      - name: Commit changes
+      - name: Commit & push changes (only if changed)
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "tide-bot"
           git config user.email "tide-bot@users.noreply.github.com"
+
           git add docs/tides.json docs/tide-next.json
-          if ! git diff --cached --quiet; then
-            git commit -m "Update tides.json and tide-next.json"
-            git push
-          else
+
+          if git diff --cached --quiet; then
             echo "No changes to commit."
+            exit 0
           fi
+
+          git commit -m "Update tides.json and tide-next.json"
+          git push
