@@ -16,20 +16,15 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      # Provide both names globally (some scripts use one or the other)
-      WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
-      WORLDTIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
-
-      DAYS_AHEAD: "60"
-      TZ_LABEL: "Australia/Melbourne"
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Debug WorldTides key presence (non-fatal)
         shell: bash
+        env:
+          WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
+          WORLDTIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
         run: |
           if [ -n "${WORLD_TIDES_API_KEY}" ] || [ -n "${WORLDTIDES_API_KEY}" ]; then
             echo "WorldTides key present ✅"
@@ -76,8 +71,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p docs
-          echo "LOCAL_CSV_PATH=${LOCAL_CSV_PATH}"
 
+          echo "LOCAL_CSV_PATH=${LOCAL_CSV_PATH}"
           python make_tides_json.py
 
           echo "---- preview docs/tides.json ----"
@@ -90,7 +85,10 @@ jobs:
           WORLDTIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
         run: |
           set -euo pipefail
+
+          # Some scripts write to ./docs, others to ../docs — create both.
           mkdir -p docs
+          mkdir -p ../docs
 
           if [ -f scripts/build_tide_next.py ]; then
             echo "Running: scripts/build_tide_next.py"
@@ -107,8 +105,25 @@ jobs:
             exit 1
           fi
 
-          echo "---- preview docs/tide-next.json ----"
-          python -c "import json; d=json.load(open('docs/tide-next.json')); print('generated_on:', d.get('generated_on')); print('wp:', d.get('wp')); print('ppb:', d.get('ppb'))"
+          echo "---- locate generated tide-next.json ----"
+          if [ -f docs/tide-next.json ]; then
+            echo "Found: docs/tide-next.json"
+            python -c "import json; d=json.load(open('docs/tide-next.json')); print('generated_on:', d.get('generated_on')); print('wp:', d.get('wp')); print('ppb:', d.get('ppb'))"
+          elif [ -f ../docs/tide-next.json ]; then
+            echo "Found: ../docs/tide-next.json"
+            python -c "import json; d=json.load(open('../docs/tide-next.json')); print('generated_on:', d.get('generated_on')); print('wp:', d.get('wp')); print('ppb:', d.get('ppb'))"
+            echo "Copying ../docs/tide-next.json -> docs/tide-next.json"
+            cp ../docs/tide-next.json docs/tide-next.json
+          else
+            echo "ERROR: tide-next.json was not created in docs/ or ../docs/"
+            echo "Tree (repo root):"
+            ls -la
+            echo "Tree (docs):"
+            ls -la docs || true
+            echo "Tree (../docs):"
+            ls -la ../docs || true
+            exit 1
+          fi
 
       - name: Commit & push changes (only if changed)
         shell: bash
