@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      # Keep both names available globally too (some scripts read one or the other)
+      # Provide both names globally (some scripts use one or the other)
       WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
       WORLDTIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
 
@@ -28,7 +28,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Non-fatal check (WP should still update even if PPB fails)
       - name: Debug WorldTides key presence (non-fatal)
         shell: bash
         run: |
@@ -71,12 +70,12 @@ jobs:
 
       - name: Generate tides.json (Top 10 big moves)
         shell: bash
-        # Force both env names INTO THIS STEP (bulletproof)
         env:
           WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
           WORLDTIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
         run: |
           set -euo pipefail
+          mkdir -p docs
           echo "LOCAL_CSV_PATH=${LOCAL_CSV_PATH}"
 
           python make_tides_json.py
@@ -86,12 +85,12 @@ jobs:
 
       - name: Generate tide-next.json (Next high/low)
         shell: bash
-        # THIS is the key fix for your error "Missing WORLDTIDES_API_KEY"
         env:
           WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
           WORLDTIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
         run: |
           set -euo pipefail
+          mkdir -p docs
 
           if [ -f scripts/build_tide_next.py ]; then
             echo "Running: scripts/build_tide_next.py"
