@@ -2,7 +2,7 @@ name: Update tides
 
 on:
   schedule:
-    - cron: "15 19 * * *"  # UTC (Australia/Melbourne is +11/+10)
+    - cron: "15 19 * * *"  # UTC
   workflow_dispatch:
 
 permissions:
@@ -17,7 +17,10 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      # Keep both names available globally too (some scripts read one or the other)
       WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
+      WORLDTIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
+
       DAYS_AHEAD: "60"
       TZ_LABEL: "Australia/Melbourne"
 
@@ -25,15 +28,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # IMPORTANT: Never fail the whole job if key is missing.
-      # WP should still update from BoM CSV even if PPB fails.
+      # Non-fatal check (WP should still update even if PPB fails)
       - name: Debug WorldTides key presence (non-fatal)
         shell: bash
         run: |
-          if [ -n "${WORLD_TIDES_API_KEY}" ]; then
-            echo "WORLD_TIDES_API_KEY present ✅"
+          if [ -n "${WORLD_TIDES_API_KEY}" ] || [ -n "${WORLDTIDES_API_KEY}" ]; then
+            echo "WorldTides key present ✅"
           else
-            echo "WARNING: WORLD_TIDES_API_KEY missing. PPB may be null, but WP will still update."
+            echo "WARNING: WorldTides key missing. PPB may be null, but WP should still update."
           fi
 
       - name: Set up Python
@@ -69,12 +71,13 @@ jobs:
 
       - name: Generate tides.json (Top 10 big moves)
         shell: bash
+        # Force both env names INTO THIS STEP (bulletproof)
+        env:
+          WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
+          WORLDTIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
         run: |
           set -euo pipefail
           echo "LOCAL_CSV_PATH=${LOCAL_CSV_PATH}"
-
-          # Make sure python subprocesses can see the env too
-          echo "WORLD_TIDES_API_KEY=${WORLD_TIDES_API_KEY}" >> "$GITHUB_ENV"
 
           python make_tides_json.py
 
@@ -83,12 +86,12 @@ jobs:
 
       - name: Generate tide-next.json (Next high/low)
         shell: bash
+        # THIS is the key fix for your error "Missing WORLDTIDES_API_KEY"
+        env:
+          WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
+          WORLDTIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
         run: |
           set -euo pipefail
-
-          # Export both names just in case scripts expect either
-          echo "WORLD_TIDES_API_KEY=${WORLD_TIDES_API_KEY}" >> "$GITHUB_ENV"
-          echo "WORLDTIDES_API_KEY=${WORLD_TIDES_API_KEY}" >> "$GITHUB_ENV"
 
           if [ -f scripts/build_tide_next.py ]; then
             echo "Running: scripts/build_tide_next.py"
