@@ -1,12 +1,12 @@
 {
   "timezone": "Australia/Melbourne",
-  "generated_on": "2026-03-03",
+  "generated_on": "2026-03-04",
   "wp": {
-    "nextHighISO": "2026-03-04T14:25:00+11:00",
-    "nextLowISO": "2026-03-04T07:57:00+11:00",
-    "nextHigh_m": 2.53,
-    "nextLow_m": 1.05,
-    "range_m": 1.48
+    "nextHighISO": "2026-03-05T15:31:00+11:00",
+    "nextLowISO": "2026-03-05T08:56:00+11:00",
+    "nextHigh_m": 2.7,
+    "nextLow_m": 0.84,
+    "range_m": 1.86
   },
   "ppb": null,
   "source_wp": "BoM tide tables \u2013 Western Port (Stony Point)",
