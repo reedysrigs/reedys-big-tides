@@ -17,17 +17,17 @@
       "max_move_m": 2.57
     },
     {
-      "date": "2026-04-07",
+      "date": "2026-04-09",
       "moves": [
         {
-          "low_time": "1231",
-          "low_m": -0.84,
-          "high_time": "1826",
-          "high_m": 0.94,
-          "move_m": 1.78
+          "low_time": "0059",
+          "low_m": -1.32,
+          "high_time": "0754",
+          "high_m": 1.14,
+          "move_m": 2.46
         }
       ],
-      "max_move_m": 1.78
+      "max_move_m": 2.46
     },
     {
       "date": "2026-04-08",
@@ -41,6 +41,19 @@
         }
       ],
       "max_move_m": 1.73
+    },
+    {
+      "date": "2026-04-09",
+      "moves": [
+        {
+          "low_time": "1335",
+          "low_m": -0.78,
+          "high_time": "1925",
+          "high_m": 0.88,
+          "move_m": 1.65
+        }
+      ],
+      "max_move_m": 1.65
     }
   ]
 }
