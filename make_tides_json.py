@@ -88,4 +88,47 @@ os.makedirs("docs", exist_ok=True)
 with open("docs/tides.json", "w") as f:
     json.dump(output, f, indent=2)
 
+# --- ALSO write tide-next.json (Western Port next high/low) ------------------
+# The Fishing Window tool reads this file for the Western Port tab. It had been
+# frozen since April because nothing was regenerating it. We build it here from
+# the same WorldTides extremes we already fetched.
+now_ms = now_utc.timestamp()
+
+def first_future(kind):
+    """Earliest extreme of `kind` ('High'/'Low') at or after now."""
+    cands = [e for e in extremes if e.get("type") == kind and e.get("dt", 0) >= now_ms]
+    cands.sort(key=lambda e: e["dt"])
+    return cands[0] if cands else None
+
+next_high = first_future("High")
+next_low  = first_future("Low")
+
+def iso(e):
+    return datetime.fromtimestamp(e["dt"], MEL).isoformat() if e else None
+
+range_m = None
+if next_high and next_low:
+    range_m = round(abs(next_high["height"] - next_low["height"]), 2)
+
+wp_node = {
+    "nextHighISO": iso(next_high),
+    "nextLowISO":  iso(next_low),
+    "nextHigh_m":  round(next_high["height"], 2) if next_high else None,
+    "nextLow_m":   round(next_low["height"], 2) if next_low else None,
+    "range_m":     range_m,
+}
+
+tide_next = {
+    "timezone": "Australia/Melbourne",
+    "generated_on": datetime.now(MEL).strftime("%Y-%m-%d"),
+    "wp": wp_node,
+    "ppb": None,                      # PPB is served by the WordPress proxy, not this file
+    "source_wp": "WorldTides API",
+    "source_ppb": None,
+}
+
+with open("docs/tide-next.json", "w") as f:
+    json.dump(tide_next, f, indent=2)
+
 print(f"Wrote {len(top)} days from {len(extremes)} extremes.")
+print(f"tide-next.json: next high {wp_node['nextHighISO']} / next low {wp_node['nextLowISO']} / range {range_m}")
