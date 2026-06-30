@@ -1,46 +1,137 @@
 {
   "source": "WorldTides API",
   "timezone": "Australia/Melbourne",
-  "generated_on": "2026-06-29",
+  "generated_on": "2026-07-01",
   "top10": [
     {
-      "date": "2026-06-30",
+      "date": "2026-07-17",
       "moves": [
         {
-          "low_time": "2055",
-          "low_m": -1.05,
-          "high_time": "0407",
+          "low_time": "0807",
+          "low_m": -1.3,
+          "high_time": "1514",
+          "high_m": 1.41,
+          "move_m": 2.71
+        }
+      ],
+      "max_move_m": 2.71
+    },
+    {
+      "date": "2026-07-18",
+      "moves": [
+        {
+          "low_time": "0904",
+          "low_m": -1.26,
+          "high_time": "1602",
+          "high_m": 1.43,
+          "move_m": 2.69
+        }
+      ],
+      "max_move_m": 2.69
+    },
+    {
+      "date": "2026-07-16",
+      "moves": [
+        {
+          "low_time": "0703",
+          "low_m": -1.3,
+          "high_time": "1420",
+          "high_m": 1.34,
+          "move_m": 2.63
+        }
+      ],
+      "max_move_m": 2.63
+    },
+    {
+      "date": "2026-07-19",
+      "moves": [
+        {
+          "low_time": "0956",
+          "low_m": -1.17,
+          "high_time": "1646",
+          "high_m": 1.39,
+          "move_m": 2.56
+        }
+      ],
+      "max_move_m": 2.56
+    },
+    {
+      "date": "2026-07-15",
+      "moves": [
+        {
+          "low_time": "0553",
+          "low_m": -1.27,
+          "high_time": "1320",
+          "high_m": 1.23,
+          "move_m": 2.5
+        }
+      ],
+      "max_move_m": 2.5
+    },
+    {
+      "date": "2026-07-20",
+      "moves": [
+        {
+          "low_time": "2320",
+          "low_m": -1.16,
+          "high_time": "1726",
+          "high_m": 1.31,
+          "move_m": 2.47
+        }
+      ],
+      "max_move_m": 2.47
+    },
+    {
+      "date": "2026-07-21",
+      "moves": [
+        {
+          "low_time": "0000",
+          "low_m": -1.2,
+          "high_time": "1801",
           "high_m": 1.21,
-          "move_m": 2.26
+          "move_m": 2.41
         }
       ],
-      "max_move_m": 2.26
+      "max_move_m": 2.41
     },
     {
-      "date": "2026-07-01",
+      "date": "2026-07-14",
       "moves": [
         {
-          "low_time": "0954",
-          "low_m": -0.45,
-          "high_time": "1530",
-          "high_m": 0.75,
-          "move_m": 1.2
+          "low_time": "0439",
+          "low_m": -1.26,
+          "high_time": "1213",
+          "high_m": 1.11,
+          "move_m": 2.38
         }
       ],
-      "max_move_m": 1.2
+      "max_move_m": 2.38
     },
     {
-      "date": "2026-06-30",
+      "date": "2026-07-03",
       "moves": [
         {
-          "low_time": "0906",
-          "low_m": -0.38,
-          "high_time": "1437",
-          "high_m": 0.7,
-          "move_m": 1.08
+          "low_time": "0824",
+          "low_m": -1.1,
+          "high_time": "1527",
+          "high_m": 1.27,
+          "move_m": 2.37
         }
       ],
-      "max_move_m": 1.08
+      "max_move_m": 2.37
+    },
+    {
+      "date": "2026-07-04",
+      "moves": [
+        {
+          "low_time": "0903",
+          "low_m": -1.09,
+          "high_time": "1602",
+          "high_m": 1.27,
+          "move_m": 2.36
+        }
+      ],
+      "max_move_m": 2.36
     }
   ]
 }
