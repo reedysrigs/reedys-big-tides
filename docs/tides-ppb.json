@@ -1,7 +1,7 @@
 {
   "source": "WorldTides API",
   "timezone": "Australia/Melbourne",
-  "generated_on": "2026-07-11",
+  "generated_on": "2026-07-12",
   "top10": [
     {
       "date": "2026-08-08",
@@ -9,7 +9,7 @@
         {
           "low_time": "0232",
           "low_m": -0.74,
-          "high_time": "1954",
+          "high_time": "1955",
           "high_m": 0.62,
           "move_m": 1.36
         }
@@ -22,7 +22,7 @@
         {
           "low_time": "0149",
           "low_m": -0.71,
-          "high_time": "1917",
+          "high_time": "1918",
           "high_m": 0.63,
           "move_m": 1.34
         }
@@ -43,25 +43,12 @@
       "max_move_m": 1.32
     },
     {
-      "date": "2026-07-11",
-      "moves": [
-        {
-          "low_time": "0356",
-          "low_m": -0.73,
-          "high_time": "2114",
-          "high_m": 0.57,
-          "move_m": 1.31
-        }
-      ],
-      "max_move_m": 1.31
-    },
-    {
       "date": "2026-07-12",
       "moves": [
         {
           "low_time": "0452",
           "low_m": -0.74,
-          "high_time": "2202",
+          "high_time": "2203",
           "high_m": 0.54,
           "move_m": 1.28
         }
@@ -72,14 +59,27 @@
       "date": "2026-08-06",
       "moves": [
         {
-          "low_time": "0110",
+          "low_time": "0111",
           "low_m": -0.66,
-          "high_time": "1844",
+          "high_time": "1845",
           "high_m": 0.62,
           "move_m": 1.28
         }
       ],
       "max_move_m": 1.28
+    },
+    {
+      "date": "2026-08-10",
+      "moves": [
+        {
+          "low_time": "0419",
+          "low_m": -0.7,
+          "high_time": "2124",
+          "high_m": 0.53,
+          "move_m": 1.22
+        }
+      ],
+      "max_move_m": 1.22
     },
     {
       "date": "2026-07-13",
@@ -98,7 +98,7 @@
       "date": "2026-08-05",
       "moves": [
         {
-          "low_time": "0036",
+          "low_time": "0037",
           "low_m": -0.59,
           "high_time": "1814",
           "high_m": 0.6,
@@ -106,19 +106,6 @@
         }
       ],
       "max_move_m": 1.19
-    },
-    {
-      "date": "2026-08-10",
-      "moves": [
-        {
-          "low_time": "0322",
-          "low_m": -0.73,
-          "high_time": "1019",
-          "high_m": 0.43,
-          "move_m": 1.17
-        }
-      ],
-      "max_move_m": 1.17
     },
     {
       "date": "2026-07-14",
@@ -132,6 +119,19 @@
         }
       ],
       "max_move_m": 1.16
+    },
+    {
+      "date": "2026-07-15",
+      "moves": [
+        {
+          "low_time": "0706",
+          "low_m": -0.69,
+          "high_time": "0003",
+          "high_m": 0.42,
+          "move_m": 1.11
+        }
+      ],
+      "max_move_m": 1.11
     }
   ]
 }
