@@ -1,7 +1,7 @@
 {
   "source": "WorldTides API",
   "timezone": "Australia/Melbourne",
-  "generated_on": "2026-07-12",
+  "generated_on": "2026-07-13",
   "top10": [
     {
       "date": "2026-08-08",
@@ -9,7 +9,7 @@
         {
           "low_time": "0232",
           "low_m": -0.74,
-          "high_time": "1955",
+          "high_time": "1954",
           "high_m": 0.62,
           "move_m": 1.36
         }
@@ -22,7 +22,7 @@
         {
           "low_time": "0149",
           "low_m": -0.71,
-          "high_time": "1918",
+          "high_time": "1917",
           "high_m": 0.63,
           "move_m": 1.34
         }
@@ -43,25 +43,12 @@
       "max_move_m": 1.32
     },
     {
-      "date": "2026-07-12",
-      "moves": [
-        {
-          "low_time": "0452",
-          "low_m": -0.74,
-          "high_time": "2203",
-          "high_m": 0.54,
-          "move_m": 1.28
-        }
-      ],
-      "max_move_m": 1.28
-    },
-    {
       "date": "2026-08-06",
       "moves": [
         {
-          "low_time": "0111",
+          "low_time": "0110",
           "low_m": -0.66,
-          "high_time": "1845",
+          "high_time": "1844",
           "high_m": 0.62,
           "move_m": 1.28
         }
@@ -98,7 +85,7 @@
       "date": "2026-08-05",
       "moves": [
         {
-          "low_time": "0037",
+          "low_time": "0036",
           "low_m": -0.59,
           "high_time": "1814",
           "high_m": 0.6,
@@ -124,14 +111,27 @@
       "date": "2026-07-15",
       "moves": [
         {
-          "low_time": "0706",
+          "low_time": "0705",
           "low_m": -0.69,
-          "high_time": "0003",
+          "high_time": "0002",
           "high_m": 0.42,
           "move_m": 1.11
         }
       ],
       "max_move_m": 1.11
+    },
+    {
+      "date": "2026-08-04",
+      "moves": [
+        {
+          "low_time": "0005",
+          "low_m": -0.51,
+          "high_time": "1745",
+          "high_m": 0.57,
+          "move_m": 1.08
+        }
+      ],
+      "max_move_m": 1.08
     }
   ]
 }
