@@ -1,12 +1,12 @@
 {
   "timezone": "Australia/Melbourne",
-  "generated_on": "2026-07-18",
+  "generated_on": "2026-07-19",
   "wp": {
-    "nextHighISO": "2026-07-18T16:02:50+10:00",
-    "nextLowISO": "2026-07-18T09:04:57+10:00",
-    "nextHigh_m": 1.43,
-    "nextLow_m": -1.26,
-    "range_m": 2.69
+    "nextHighISO": "2026-07-19T16:46:41+10:00",
+    "nextLowISO": "2026-07-19T09:56:59+10:00",
+    "nextHigh_m": 1.39,
+    "nextLow_m": -1.17,
+    "range_m": 2.56
   },
   "ppb": null,
   "source_wp": "WorldTides API",
