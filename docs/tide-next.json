@@ -1,11 +1,11 @@
 {
   "timezone": "Australia/Melbourne",
-  "generated_on": "2026-08-02",
+  "generated_on": "2026-08-03",
   "wp": {
-    "nextHighISO": "2026-08-02T15:34:30+10:00",
-    "nextLowISO": "2026-08-02T08:44:14+10:00",
+    "nextHighISO": "2026-08-03T16:09:18+10:00",
+    "nextLowISO": "2026-08-03T09:24:29+10:00",
     "nextHigh_m": 1.21,
-    "nextLow_m": -1.04,
+    "nextLow_m": -1.03,
     "range_m": 2.25
   },
   "ppb": null,
