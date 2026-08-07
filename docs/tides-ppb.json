@@ -1,7 +1,7 @@
 {
   "source": "WorldTides API",
   "timezone": "Australia/Melbourne",
-  "generated_on": "2026-08-06",
+  "generated_on": "2026-08-07",
   "top10": [
     {
       "date": "2026-08-08",
@@ -9,7 +9,7 @@
         {
           "low_time": "0232",
           "low_m": -0.74,
-          "high_time": "1954",
+          "high_time": "1955",
           "high_m": 0.62,
           "move_m": 1.36
         }
@@ -22,8 +22,21 @@
         {
           "low_time": "0149",
           "low_m": -0.71,
-          "high_time": "1917",
+          "high_time": "1918",
           "high_m": 0.63,
+          "move_m": 1.34
+        }
+      ],
+      "max_move_m": 1.34
+    },
+    {
+      "date": "2026-09-05",
+      "moves": [
+        {
+          "low_time": "0118",
+          "low_m": -0.72,
+          "high_time": "1844",
+          "high_m": 0.62,
           "move_m": 1.34
         }
       ],
@@ -48,38 +61,12 @@
         {
           "low_time": "0040",
           "low_m": -0.71,
-          "high_time": "1811",
+          "high_time": "1812",
           "high_m": 0.61,
           "move_m": 1.32
         }
       ],
       "max_move_m": 1.32
-    },
-    {
-      "date": "2026-08-06",
-      "moves": [
-        {
-          "low_time": "0110",
-          "low_m": -0.66,
-          "high_time": "1844",
-          "high_m": 0.62,
-          "move_m": 1.28
-        }
-      ],
-      "max_move_m": 1.28
-    },
-    {
-      "date": "2026-09-05",
-      "moves": [
-        {
-          "low_time": "0040",
-          "low_m": -0.71,
-          "high_time": "0717",
-          "high_m": 0.56,
-          "move_m": 1.27
-        }
-      ],
-      "max_move_m": 1.27
     },
     {
       "date": "2026-09-03",
@@ -93,6 +80,19 @@
         }
       ],
       "max_move_m": 1.25
+    },
+    {
+      "date": "2026-09-06",
+      "moves": [
+        {
+          "low_time": "0118",
+          "low_m": -0.72,
+          "high_time": "0800",
+          "high_m": 0.52,
+          "move_m": 1.24
+        }
+      ],
+      "max_move_m": 1.24
     },
     {
       "date": "2026-08-10",
@@ -111,7 +111,7 @@
       "date": "2026-09-02",
       "moves": [
         {
-          "low_time": "2334",
+          "low_time": "2335",
           "low_m": -0.61,
           "high_time": "0557",
           "high_m": 0.57,
