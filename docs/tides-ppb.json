@@ -7,131 +7,131 @@
       "date": "2026-09-05",
       "moves": [
         {
-          "low_time": "0118",
-          "low_m": -0.72,
-          "high_time": "1844",
-          "high_m": 0.62,
-          "move_m": 1.34
-        }
-      ],
-      "max_move_m": 1.34
-    },
-    {
-      "date": "2026-09-04",
-      "moves": [
-        {
-          "low_time": "0040",
-          "low_m": -0.71,
-          "high_time": "1811",
-          "high_m": 0.61,
-          "move_m": 1.32
-        }
-      ],
-      "max_move_m": 1.32
-    },
-    {
-      "date": "2026-09-06",
-      "moves": [
-        {
-          "low_time": "0201",
-          "low_m": -0.71,
-          "high_time": "1921",
-          "high_m": 0.59,
-          "move_m": 1.3
-        }
-      ],
-      "max_move_m": 1.3
-    },
-    {
-      "date": "2026-09-03",
-      "moves": [
-        {
-          "low_time": "0006",
-          "low_m": -0.67,
-          "high_time": "1741",
-          "high_m": 0.59,
+          "low_time": "0122",
+          "low_m": -0.14,
+          "high_time": "1847",
+          "high_m": 1.11,
           "move_m": 1.25
         }
       ],
       "max_move_m": 1.25
     },
     {
+      "date": "2026-09-04",
+      "moves": [
+        {
+          "low_time": "0044",
+          "low_m": -0.12,
+          "high_time": "1815",
+          "high_m": 1.1,
+          "move_m": 1.23
+        }
+      ],
+      "max_move_m": 1.23
+    },
+    {
+      "date": "2026-09-06",
+      "moves": [
+        {
+          "low_time": "0206",
+          "low_m": -0.13,
+          "high_time": "1924",
+          "high_m": 1.09,
+          "move_m": 1.22
+        }
+      ],
+      "max_move_m": 1.22
+    },
+    {
+      "date": "2026-09-03",
+      "moves": [
+        {
+          "low_time": "0010",
+          "low_m": -0.08,
+          "high_time": "1744",
+          "high_m": 1.08,
+          "move_m": 1.16
+        }
+      ],
+      "max_move_m": 1.16
+    },
+    {
       "date": "2026-09-07",
       "moves": [
         {
-          "low_time": "0250",
-          "low_m": -0.66,
-          "high_time": "2004",
-          "high_m": 0.53,
-          "move_m": 1.2
+          "low_time": "0255",
+          "low_m": -0.08,
+          "high_time": "2007",
+          "high_m": 1.03,
+          "move_m": 1.12
         }
       ],
-      "max_move_m": 1.2
+      "max_move_m": 1.12
     },
     {
       "date": "2026-09-02",
       "moves": [
         {
-          "low_time": "2334",
-          "low_m": -0.61,
-          "high_time": "0557",
-          "high_m": 0.57,
-          "move_m": 1.18
+          "low_time": "2338",
+          "low_m": -0.03,
+          "high_time": "0601",
+          "high_m": 1.07,
+          "move_m": 1.1
         }
       ],
-      "max_move_m": 1.18
+      "max_move_m": 1.1
     },
     {
       "date": "2026-09-19",
       "moves": [
         {
-          "low_time": "0121",
-          "low_m": -0.6,
-          "high_time": "1845",
-          "high_m": 0.48,
-          "move_m": 1.08
+          "low_time": "0126",
+          "low_m": -0.03,
+          "high_time": "1850",
+          "high_m": 0.98,
+          "move_m": 1.01
         }
       ],
-      "max_move_m": 1.08
+      "max_move_m": 1.01
     },
     {
       "date": "2026-09-20",
       "moves": [
         {
-          "low_time": "0159",
-          "low_m": -0.61,
-          "high_time": "1919",
-          "high_m": 0.48,
-          "move_m": 1.08
+          "low_time": "0126",
+          "low_m": -0.03,
+          "high_time": "0759",
+          "high_m": 0.98,
+          "move_m": 1.01
         }
       ],
-      "max_move_m": 1.08
-    },
-    {
-      "date": "2026-09-01",
-      "moves": [
-        {
-          "low_time": "2304",
-          "low_m": -0.54,
-          "high_time": "1643",
-          "high_m": 0.52,
-          "move_m": 1.06
-        }
-      ],
-      "max_move_m": 1.06
+      "max_move_m": 1.01
     },
     {
       "date": "2026-09-18",
       "moves": [
         {
-          "low_time": "0019",
-          "low_m": -0.57,
-          "high_time": "0648",
-          "high_m": 0.49,
-          "move_m": 1.06
+          "low_time": "0024",
+          "low_m": 0.0,
+          "high_time": "0654",
+          "high_m": 1.0,
+          "move_m": 1.0
         }
       ],
-      "max_move_m": 1.06
+      "max_move_m": 1.0
+    },
+    {
+      "date": "2026-09-01",
+      "moves": [
+        {
+          "low_time": "2307",
+          "low_m": 0.04,
+          "high_time": "0520",
+          "high_m": 1.02,
+          "move_m": 0.99
+        }
+      ],
+      "max_move_m": 0.99
     }
   ]
 }
