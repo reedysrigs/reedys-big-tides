@@ -16,18 +16,12 @@ FETCH_DAYS = 33      # how far ahead to request (buffer beyond the 30-day window
 WINDOW_DAYS = 30     # only keep days within the next 30 days
 TOP_N = 10           # biggest-movement days to output
 
-# Chart datum offset for Western Port.
-#
-# WorldTides returns heights measured from MEAN SEA LEVEL, so low tide comes
-# back negative. Published tide tables measure from the CHART DATUM, which is
-# why every printed Western Port height is positive. Checked against Stony
-# Point on 15 Aug 2026: the feed said +1.27 and -1.17 where the tables said
-# 2.96 and 0.49 - a constant 1.67m apart.
-#
-# The page used to apply this offset itself, but only on the two-point
-# fallback path. Applying it here means the heights are already in table
-# terms by the time anything reads them, and every consumer agrees.
-WP_DATUM = 1.67
+# NOTE: heights used to be shifted by hand here - 1.67m for Western Port,
+# measured off a published Stony Point table - because the API was being
+# asked for mean-sea-level heights. fetch_extremes now requests datum=CD and
+# the numbers arrive in table terms, so both bays sit at 0.0 and there is
+# nothing left to calibrate. The `datum` field stays in the config in case a
+# station ever needs a nudge.
 
 # One entry per bay. PPB tide range is much smaller than Western Port - that's
 # expected. If you want PPB referenced to a specific spot (the Heads, Williamstown,
@@ -39,18 +33,12 @@ WP_DATUM = 1.67
 # and the rest all have their own timing and range, so if a ramp looks wrong
 # against a published table this is the first thing to check.
 BAYS = {
-    "wp":  {"lat": -38.37, "lon": 145.22, "out": "docs/tides.json",     "tide_next": True,  "datum": WP_DATUM},
-    # Frankston pier. This was -38.00, 144.85 - open water mid-bay, which
-    # WorldTides snapped to a big-range station and gave Port Phillip a 1.34m
-    # swing. Frankston's published table on 28 Aug 2026 runs 0.26 to 0.76,
-    # about half a metre, which is what the inside of the bay actually does.
-    #
-    # Datum 0.54: WorldTides measures from mean sea level, the tables from
-    # chart datum. Frankston's published tides sit between 0.26 and 0.82, so
-    # mid-water is about 0.54 above the datum. CHECK THIS after the first run
-    # - compare a low against Willy Weather's Frankston page and shift this
-    # number by whatever the gap is.
-    "ppb": {"lat": -38.14, "lon": 145.12, "out": "docs/tides-ppb.json", "tide_next": False, "datum": 0.54},
+    "wp":  {"lat": -38.37, "lon": 145.22, "out": "docs/tides.json",     "tide_next": True,  "datum": 0.0},
+    # Williamstown - the SAME station the WordPress endpoint uses for the
+    # Port Phillip card, so the card and these lists can no longer disagree.
+    # Frankston was tried first and WorldTides snapped it to a big-range
+    # station: a 1.25m swing where the bay actually does about half a metre.
+    "ppb": {"lat": -37.86, "lon": 144.91, "out": "docs/tides-ppb.json", "tide_next": False, "datum": 0.0},
 }
 
 now_utc = datetime.now(timezone.utc)
@@ -65,10 +53,17 @@ now_ms = now_utc.timestamp()
 
 
 def fetch_extremes(lat, lon):
+    """datum=CD asks WorldTides for CHART DATUM heights - the same numbers a
+    published tide table prints. Without it the API returns mean-sea-level
+    heights, which is why every low came back negative and why this script
+    was carrying hand-measured offsets at all. The WordPress endpoint that
+    feeds the Port Phillip card has always asked for CD, which is why that
+    card was right while these lists were not."""
     url = (
         "https://www.worldtides.info/api/v3"
         f"?extremes&lat={lat}&lon={lon}"
         f"&start={start}&length={length}"
+        f"&datum=CD"
         f"&key={API_KEY}"
     )
     res = requests.get(url, timeout=30)
