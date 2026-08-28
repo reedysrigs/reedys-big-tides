@@ -8,9 +8,9 @@
       "moves": [
         {
           "low_time": "2138",
-          "low_m": 0.32,
+          "low_m": 0.44,
           "high_time": "0425",
-          "high_m": 2.99,
+          "high_m": 3.12,
           "move_m": 2.68
         }
       ],
@@ -21,9 +21,9 @@
       "moves": [
         {
           "low_time": "2214",
-          "low_m": 0.29,
+          "low_m": 0.42,
           "high_time": "0503",
-          "high_m": 2.94,
+          "high_m": 3.07,
           "move_m": 2.65
         }
       ],
@@ -34,9 +34,9 @@
       "moves": [
         {
           "low_time": "2059",
-          "low_m": 0.39,
+          "low_m": 0.51,
           "high_time": "0343",
-          "high_m": 2.98,
+          "high_m": 3.1,
           "move_m": 2.59
         }
       ],
@@ -47,9 +47,9 @@
       "moves": [
         {
           "low_time": "2247",
-          "low_m": 0.31,
+          "low_m": 0.44,
           "high_time": "0538",
-          "high_m": 2.86,
+          "high_m": 2.98,
           "move_m": 2.55
         }
       ],
@@ -60,9 +60,9 @@
       "moves": [
         {
           "low_time": "2246",
-          "low_m": 0.29,
+          "low_m": 0.42,
           "high_time": "0544",
-          "high_m": 2.83,
+          "high_m": 2.96,
           "move_m": 2.54
         }
       ],
@@ -73,9 +73,9 @@
       "moves": [
         {
           "low_time": "2325",
-          "low_m": 0.26,
+          "low_m": 0.38,
           "high_time": "0629",
-          "high_m": 2.76,
+          "high_m": 2.89,
           "move_m": 2.51
         }
       ],
@@ -86,9 +86,9 @@
       "moves": [
         {
           "low_time": "2208",
-          "low_m": 0.37,
+          "low_m": 0.5,
           "high_time": "0500",
-          "high_m": 2.86,
+          "high_m": 2.99,
           "move_m": 2.49
         }
       ],
@@ -99,9 +99,9 @@
       "moves": [
         {
           "low_time": "0006",
-          "low_m": 0.27,
+          "low_m": 0.39,
           "high_time": "0715",
-          "high_m": 2.67,
+          "high_m": 2.8,
           "move_m": 2.41
         }
       ],
@@ -112,9 +112,9 @@
       "moves": [
         {
           "low_time": "2319",
-          "low_m": 0.35,
+          "low_m": 0.48,
           "high_time": "0612",
-          "high_m": 2.75,
+          "high_m": 2.88,
           "move_m": 2.4
         }
       ],
@@ -125,9 +125,9 @@
       "moves": [
         {
           "low_time": "0006",
-          "low_m": 0.27,
+          "low_m": 0.39,
           "high_time": "1802",
-          "high_m": 2.62,
+          "high_m": 2.75,
           "move_m": 2.36
         }
       ],
