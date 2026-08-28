@@ -40,7 +40,17 @@ WP_DATUM = 1.67
 # against a published table this is the first thing to check.
 BAYS = {
     "wp":  {"lat": -38.37, "lon": 145.22, "out": "docs/tides.json",     "tide_next": True,  "datum": WP_DATUM},
-    "ppb": {"lat": -38.00, "lon": 144.85, "out": "docs/tides-ppb.json", "tide_next": False, "datum": 0.0},
+    # Frankston pier. This was -38.00, 144.85 - open water mid-bay, which
+    # WorldTides snapped to a big-range station and gave Port Phillip a 1.34m
+    # swing. Frankston's published table on 28 Aug 2026 runs 0.26 to 0.76,
+    # about half a metre, which is what the inside of the bay actually does.
+    #
+    # Datum 0.54: WorldTides measures from mean sea level, the tables from
+    # chart datum. Frankston's published tides sit between 0.26 and 0.82, so
+    # mid-water is about 0.54 above the datum. CHECK THIS after the first run
+    # - compare a low against Willy Weather's Frankston page and shift this
+    # number by whatever the gap is.
+    "ppb": {"lat": -38.14, "lon": 145.12, "out": "docs/tides-ppb.json", "tide_next": False, "datum": 0.54},
 }
 
 now_utc = datetime.now(timezone.utc)
@@ -66,8 +76,16 @@ def fetch_extremes(lat, lon):
     return res.json().get("extremes", [])
 
 
-def build_top10(extremes):
-    """Biggest Low<->High swing per day, top N days by size, within the window."""
+def build_top10(extremes, datum=0.0):
+    """Biggest Low<->High swing per day, top N days by size, within the window.
+
+    low_m and high_m are datum-shifted, because the Big Tides tab prints them
+    straight to the screen. Un-shifted they came out MSL-referenced and every
+    low displayed NEGATIVE - the 15 Sep spring showed as -1.35 / 1.32 where
+    the published Stony Point table says 0.32 / 2.99, and it contradicted the
+    tide chart on the same page. move_m and max_move_m are differences, so the
+    offset cancels and they were always right.
+    """
     day_best = {}
     for i in range(len(extremes) - 1):
         a = extremes[i]
@@ -91,9 +109,9 @@ def build_top10(extremes):
             "date": date_str,
             "moves": [{
                 "low_time":  low_dt.strftime("%H%M"),
-                "low_m":     round(low["height"], 2),
+                "low_m":     round(low["height"] + datum, 2),
                 "high_time": high_dt.strftime("%H%M"),
-                "high_m":    round(high["height"], 2),
+                "high_m":    round(high["height"] + datum, 2),
                 "move_m":    move,
             }],
             "max_move_m": move,
@@ -165,7 +183,7 @@ today_start = now_mel.replace(hour=0, minute=0, second=0, microsecond=0)
 
 for key, cfg in BAYS.items():
     extremes = fetch_extremes(cfg["lat"], cfg["lon"])
-    top = build_top10(extremes)
+    top = build_top10(extremes, cfg["datum"])
 
     with open(cfg["out"], "w") as f:
         json.dump({
