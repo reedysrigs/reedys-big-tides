@@ -1,21 +1,8 @@
 {
   "source": "WorldTides API",
   "timezone": "Australia/Melbourne",
-  "generated_on": "2026-09-06",
+  "generated_on": "2026-09-07",
   "top10": [
-    {
-      "date": "2026-09-06",
-      "moves": [
-        {
-          "low_time": "0348",
-          "low_m": 0.23,
-          "high_time": "2033",
-          "high_m": 0.95,
-          "move_m": 0.72
-        }
-      ],
-      "max_move_m": 0.72
-    },
     {
       "date": "2026-09-30",
       "moves": [
@@ -127,6 +114,19 @@
           "low_time": "0055",
           "low_m": 0.24,
           "high_time": "0707",
+          "high_m": 0.93,
+          "move_m": 0.68
+        }
+      ],
+      "max_move_m": 0.68
+    },
+    {
+      "date": "2026-09-18",
+      "moves": [
+        {
+          "low_time": "0203",
+          "low_m": 0.25,
+          "high_time": "1909",
           "high_m": 0.93,
           "move_m": 0.68
         }
