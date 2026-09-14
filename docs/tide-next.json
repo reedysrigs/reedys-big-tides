@@ -1,30 +1,10 @@
 {
   "timezone": "Australia/Melbourne",
-  "generated_on": "2026-09-14",
-  "generated_at": "2026-09-14T07:26:32.370899+10:00",
+  "generated_on": "2026-09-15",
+  "generated_at": "2026-09-15T08:31:05.965228+10:00",
   "station": "Western Port (Stony Point)",
   "datum_offset_m": 0.0,
   "extremes": [
-    {
-      "date": "2026-09-06T12:37:24+10:00",
-      "height": 1.13,
-      "type": "Low"
-    },
-    {
-      "date": "2026-09-06T18:42:37+10:00",
-      "height": 2.67,
-      "type": "High"
-    },
-    {
-      "date": "2026-09-07T00:51:43+10:00",
-      "height": 0.45,
-      "type": "Low"
-    },
-    {
-      "date": "2026-09-07T08:05:57+10:00",
-      "height": 2.71,
-      "type": "High"
-    },
     {
       "date": "2026-09-07T13:26:58+10:00",
       "height": 1.21,
@@ -216,7 +196,7 @@
       "type": "High"
     },
     {
-      "date": "2026-09-17T10:39:17+10:00",
+      "date": "2026-09-17T10:39:18+10:00",
       "height": 0.88,
       "type": "Low"
     },
@@ -371,7 +351,7 @@
       "type": "Low"
     },
     {
-      "date": "2026-09-25T10:54:22+10:00",
+      "date": "2026-09-25T10:54:21+10:00",
       "height": 2.41,
       "type": "High"
     },
@@ -429,14 +409,34 @@
       "date": "2026-09-28T07:17:56+10:00",
       "height": 0.98,
       "type": "Low"
+    },
+    {
+      "date": "2026-09-28T13:40:12+10:00",
+      "height": 2.69,
+      "type": "High"
+    },
+    {
+      "date": "2026-09-28T19:35:24+10:00",
+      "height": 0.75,
+      "type": "Low"
+    },
+    {
+      "date": "2026-09-29T02:22:35+10:00",
+      "height": 2.91,
+      "type": "High"
+    },
+    {
+      "date": "2026-09-29T08:06:49+10:00",
+      "height": 0.91,
+      "type": "Low"
     }
   ],
   "wp": {
-    "nextHighISO": "2026-09-14T15:05:20+10:00",
-    "nextLowISO": "2026-09-14T08:39:40+10:00",
-    "nextHigh_m": 2.93,
-    "nextLow_m": 0.76,
-    "range_m": 2.16
+    "nextHighISO": "2026-09-15T15:43:32+10:00",
+    "nextLowISO": "2026-09-15T09:23:44+10:00",
+    "nextHigh_m": 2.92,
+    "nextLow_m": 0.78,
+    "range_m": 2.14
   },
   "ppb": null,
   "source_wp": "WorldTides API",
