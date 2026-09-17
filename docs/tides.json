@@ -1,16 +1,16 @@
 {
   "source": "WorldTides API",
   "timezone": "Australia/Melbourne",
-  "generated_on": "2026-09-17",
+  "generated_on": "2026-09-18",
   "top10": [
     {
       "date": "2026-10-01",
       "moves": [
         {
           "low_time": "2142",
-          "low_m": 0.33,
-          "high_time": "0445",
-          "high_m": 3.13,
+          "low_m": 0.31,
+          "high_time": "0444",
+          "high_m": 3.12,
           "move_m": 2.81
         }
       ],
@@ -20,118 +20,118 @@
       "date": "2026-10-02",
       "moves": [
         {
-          "low_time": "2223",
-          "low_m": 0.3,
-          "high_time": "0530",
-          "high_m": 3.06,
-          "move_m": 2.76
+          "low_time": "2224",
+          "low_m": 0.28,
+          "high_time": "0528",
+          "high_m": 3.05,
+          "move_m": 2.77
         }
       ],
-      "max_move_m": 2.76
-    },
-    {
-      "date": "2026-10-14",
-      "moves": [
-        {
-          "low_time": "2202",
-          "low_m": 0.42,
-          "high_time": "0457",
-          "high_m": 3.17,
-          "move_m": 2.76
-        }
-      ],
-      "max_move_m": 2.76
+      "max_move_m": 2.77
     },
     {
       "date": "2026-09-30",
       "moves": [
         {
           "low_time": "2100",
-          "low_m": 0.41,
+          "low_m": 0.4,
           "high_time": "0359",
-          "high_m": 3.14,
+          "high_m": 3.12,
           "move_m": 2.72
         }
       ],
       "max_move_m": 2.72
     },
     {
-      "date": "2026-10-13",
+      "date": "2026-10-14",
       "moves": [
         {
-          "low_time": "2124",
-          "low_m": 0.46,
-          "high_time": "0418",
-          "high_m": 3.17,
-          "move_m": 2.71
-        }
-      ],
-      "max_move_m": 2.71
-    },
-    {
-      "date": "2026-10-15",
-      "moves": [
-        {
-          "low_time": "2237",
-          "low_m": 0.42,
-          "high_time": "0532",
-          "high_m": 3.12,
+          "low_time": "2201",
+          "low_m": 0.4,
+          "high_time": "0457",
+          "high_m": 3.1,
           "move_m": 2.7
         }
       ],
       "max_move_m": 2.7
     },
     {
+      "date": "2026-10-13",
+      "moves": [
+        {
+          "low_time": "2122",
+          "low_m": 0.44,
+          "high_time": "0419",
+          "high_m": 3.1,
+          "move_m": 2.66
+        }
+      ],
+      "max_move_m": 2.66
+    },
+    {
+      "date": "2026-10-15",
+      "moves": [
+        {
+          "low_time": "2236",
+          "low_m": 0.41,
+          "high_time": "0532",
+          "high_m": 3.05,
+          "move_m": 2.65
+        }
+      ],
+      "max_move_m": 2.65
+    },
+    {
       "date": "2026-10-03",
       "moves": [
         {
-          "low_time": "2305",
-          "low_m": 0.33,
-          "high_time": "0714",
-          "high_m": 2.95,
-          "move_m": 2.62
+          "low_time": "2306",
+          "low_m": 0.31,
+          "high_time": "0713",
+          "high_m": 2.94,
+          "move_m": 2.63
         }
       ],
-      "max_move_m": 2.62
+      "max_move_m": 2.63
     },
     {
       "date": "2026-10-16",
       "moves": [
         {
-          "low_time": "2310",
+          "low_time": "2309",
           "low_m": 0.44,
           "high_time": "0605",
-          "high_m": 3.03,
-          "move_m": 2.58
+          "high_m": 2.97,
+          "move_m": 2.53
         }
       ],
-      "max_move_m": 2.58
-    },
-    {
-      "date": "2026-09-17",
-      "moves": [
-        {
-          "low_time": "2247",
-          "low_m": 0.44,
-          "high_time": "0538",
-          "high_m": 2.98,
-          "move_m": 2.55
-        }
-      ],
-      "max_move_m": 2.55
+      "max_move_m": 2.53
     },
     {
       "date": "2026-10-12",
       "moves": [
         {
-          "low_time": "2042",
-          "low_m": 0.55,
-          "high_time": "0335",
-          "high_m": 3.09,
-          "move_m": 2.54
+          "low_time": "2040",
+          "low_m": 0.53,
+          "high_time": "0336",
+          "high_m": 3.03,
+          "move_m": 2.5
         }
       ],
-      "max_move_m": 2.54
+      "max_move_m": 2.5
+    },
+    {
+      "date": "2026-09-29",
+      "moves": [
+        {
+          "low_time": "2017",
+          "low_m": 0.55,
+          "high_time": "0313",
+          "high_m": 3.03,
+          "move_m": 2.49
+        }
+      ],
+      "max_move_m": 2.49
     }
   ]
 }
