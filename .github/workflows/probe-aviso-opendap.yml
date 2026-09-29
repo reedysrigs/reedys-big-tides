@@ -1,0 +1,42 @@
+name: Probe AVISO OPeNDAP
+
+# One-off diagnostic. Can we subset FES2014 currents server-side instead of
+# pulling multi-GB archives over a stalling FTP? Writes docs/_aviso_opendap.txt.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: docs-push
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install --quiet requests
+      - env:
+          AVISO_USER: ${{ secrets.AVISO_USER }}
+          AVISO_PASS: ${{ secrets.AVISO_PASS }}
+        run: python scripts/probe_aviso_opendap.py
+      - name: Commit the findings
+        if: always()
+        run: |
+          git config user.name  "tide-stream-bot"
+          git config user.email "tide-stream-bot@users.noreply.github.com"
+          git add docs/_aviso_opendap.txt 2>/dev/null || true
+          git diff --cached --quiet && { echo "nothing to commit"; exit 0; }
+          git commit -m "Probe: AVISO OPeNDAP access"
+          for i in 1 2 3; do
+            git pull --rebase --autostash && git push && exit 0
+            sleep 5
+          done
+          exit 1
