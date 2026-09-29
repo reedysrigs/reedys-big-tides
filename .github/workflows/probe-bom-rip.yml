@@ -1,0 +1,37 @@
+name: Probe BoM Rip table
+
+# One-off diagnostic. Writes docs/_bom_rip_sample.txt so the real parser can
+# be written against the Bureau's actual layout. Delete once that is done.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: docs-push
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install --quiet requests pdfplumber
+      - run: python scripts/probe_bom_rip.py
+      - name: Commit the sample
+        run: |
+          git config user.name  "tide-stream-bot"
+          git config user.email "tide-stream-bot@users.noreply.github.com"
+          git add docs/_bom_rip_sample.txt
+          git diff --cached --quiet && { echo "nothing changed"; exit 0; }
+          git commit -m "Probe: BoM Rip tidal stream table layout"
+          for i in 1 2 3; do
+            git pull --rebase --autostash && git push && exit 0
+            sleep 5
+          done
+          exit 1
