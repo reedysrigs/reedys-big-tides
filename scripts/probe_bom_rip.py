@@ -16,7 +16,7 @@ import requests
 
 URL = "https://www.bom.gov.au/ntc/IDO59002/IDO59002_2026_VIC_TS001.pdf"
 OUT = "docs/_bom_rip_sample.txt"
-MAX_LINES = 320
+MAX_LINES = 120
 
 
 def main():
@@ -52,6 +52,32 @@ def main():
                         break
                     report.append("%3d| %s" % (shown, line))
                     shown += 1
+                # WORD COORDINATES - the text layout cannot be parsed reliably.
+                # The Bureau prints three months side by side, two day-columns
+                # each, and entries go missing where a day has fewer turns:
+                #   "1904 2210 3.88 ... 2102 1927 2232 3.37 ..."
+                # That lone 2102 is a slack with no maximum after it. Reading
+                # left to right cannot tell which of the six columns any entry
+                # belongs to. The x position can.
+                if pno == 2:
+                    try:
+                        words = page.extract_words()
+                        report.append("")
+                        report.append("=== PAGE 2 WORD POSITIONS (first 160) ===")
+                        report.append("%8s %8s %8s  %s" % ("x0", "x1", "top", "text"))
+                        for w in words[:160]:
+                            report.append("%8.1f %8.1f %8.1f  %s"
+                                          % (w["x0"], w["x1"], w["top"], w["text"]))
+                        xs = sorted(round(w["x0"]) for w in words)
+                        report.append("")
+                        report.append("distinct x0 values: %d" % len(set(xs)))
+                        report.append("x0 histogram (value:count), sorted:")
+                        from collections import Counter
+                        for x, n in sorted(Counter(xs).items()):
+                            report.append("   %6d : %d" % (x, n))
+                    except Exception as e:
+                        report.append("extract_words failed: %s" % e)
+
                 # tables, if the layout is tabular rather than text
                 if pno == 1:
                     try:
