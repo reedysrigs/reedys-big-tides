@@ -1,0 +1,39 @@
+name: Update Rip streams
+
+# Publishes docs/rip-streams.json from the Bureau's own tidal stream table
+# for The Rip. Their predictions, not a model of them. Daily is ample - the
+# table is a fixed annual publication.
+
+on:
+  schedule:
+    - cron: "52 19 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  parse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install --quiet requests pdfplumber
+      - env:
+          WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
+        run: python scripts/parse_bom_rip.py
+      - name: Commit and push
+        run: |
+          git config user.name  "rip-bot"
+          git config user.email "rip-bot@users.noreply.github.com"
+          git add docs/rip-streams.json
+          git diff --cached --quiet && { echo "nothing changed"; exit 0; }
+          git commit -m "Update Rip stream predictions"
+          for i in 1 2 3; do
+            git pull --rebase --autostash && git push && exit 0
+            sleep 5
+          done
+          exit 1
