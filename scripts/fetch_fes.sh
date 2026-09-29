@@ -56,16 +56,15 @@ do_component () {          # do_component <archive-base> <local-subdir>
     echo "no checksum published, continuing"
   fi
 
-  echo "--- archive contents (first 25) ---"
-  tar -tJf "$tarball" | head -25
-  echo "--- total members: $(tar -tJf "$tarball" | wc -l) ---"
-
-  # pull out just the harmonics we use, whatever case or nesting they are in
+  # ONE decompression pass. Listing and extracting separately meant xz ran
+  # over the whole archive twice, which on a multi-GB file is minutes wasted.
+  # -v prints each member as it is written, so the listing comes free.
   local pats=()
   for c in $CONSTITUENTS; do
     pats+=( "--wildcards" "*${c}.nc" "--wildcards" "*$(echo "$c" | tr a-z A-Z).nc" )
   done
-  tar -xJf "$tarball" --no-anchored --wildcards-match-slash "${pats[@]}" 2>/dev/null \
+  echo "--- extracting (members printed as they land) ---"
+  tar -xJvf "$tarball" --no-anchored --wildcards-match-slash "${pats[@]}" 2>&1 | head -40 \
     || echo "selective extract returned non-zero, checking what landed"
 
   # flatten whatever directory structure came out
