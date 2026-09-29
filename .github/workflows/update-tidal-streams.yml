@@ -1,0 +1,50 @@
+name: Update tidal streams
+
+# Publishes docs/streams.json - slack water and peak stream times for
+# enclosed-bay entrances. Daily is plenty; tide predictions do not move.
+# Separate from "Update tides" and from "Update tidal currents".
+
+on:
+  schedule:
+    - cron: "45 19 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: docs-push
+  cancel-in-progress: false
+
+jobs:
+  bake:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install --quiet requests
+
+      - name: Bake the stream predictions
+        env:
+          WORLD_TIDES_API_KEY: ${{ secrets.WORLD_TIDES_API_KEY }}
+        run: python scripts/bake_tidal_streams.py
+
+      - name: Commit and push
+        run: |
+          git config user.name  "tide-stream-bot"
+          git config user.email "tide-stream-bot@users.noreply.github.com"
+          git add docs/streams.json
+          git diff --cached --quiet && { echo "nothing changed"; exit 0; }
+          git commit -m "Update tidal streams"
+          for i in 1 2 3; do
+            git pull --rebase --autostash && git push && exit 0
+            echo "push failed, retrying ($i)"; sleep 5
+          done
+          exit 1
