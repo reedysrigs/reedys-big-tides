@@ -1,62 +1,64 @@
 #!/usr/bin/env bash
-# Pull FES2014 tidal-CURRENT constituents into fes-data/fes2014/, the layout
-# pyTMD expects.
+# Pull FES2014 tidal-CURRENT constituents into fes-data/fes2014/.
 #
-# Confirmed layout on ftp-access.aviso.altimetry.fr (29 Sep 2026):
-#   /auxiliary/tide_model/fes2014a_currents/eastward_velocity.tar.xz
-#   /auxiliary/tide_model/fes2014a_currents/northward_velocity.tar.xz
-#   ... plus .sha256sum for each, and a readme.
+# HISTORY, so nobody repeats it:
+#   FTP (ftp-access.aviso.altimetry.fr) via lftp sat on a single 2.21 GB
+#   archive for over an hour without finishing, with no network timeout, so a
+#   dropped connection hung forever. Parallel FTP segments did not help either.
 #
-# They are ARCHIVES, not directories. Each is downloaded, checksummed,
-# and only the eight principal harmonics are extracted before it is deleted,
-# so peak disk stays manageable on a runner.
+# The THREDDS catalog gives exact sizes and an HTTPS endpoint:
+#   https://tds-odatis.aviso.altimetry.fr/thredds/fileServer/
+#     dataset-auxiliary-fes-tide-model/fes2014a_currents/eastward_velocity.tar.xz
+#   eastward  2.210 GB
+#   northward 2.215 GB
+#
+# HTTPS supports range requests, so this fetches with aria2c across 16
+# connections. Falls back to curl with resume if aria2c is unavailable.
+#
+# OPeNDAP is NOT offered for this dataset - the catalog publishes only
+# HTTPServer, and every dodsC path 404s. Server-side subsetting is not an
+# option; the whole archive has to come down once.
 set -uo pipefail
 
-HOST="ftp-access.aviso.altimetry.fr"
-DIR="/auxiliary/tide_model/fes2014a_currents"
+BASE="https://tds-odatis.aviso.altimetry.fr/thredds/fileServer/dataset-auxiliary-fes-tide-model/fes2014a_currents"
 : "${AVISO_USER:?AVISO_USER not set}"
 : "${AVISO_PASS:?AVISO_PASS not set}"
 
 CONSTITUENTS="m2 s2 n2 k2 k1 o1 p1 q1"
-
 mkdir -p fes-data/fes2014/eastward_velocity fes-data/fes2014/northward_velocity
 
-grab () {  # grab <remote-file> <local-file>
-  # pget -n splits the file across parallel connections. A single FTP stream
-  # to AVISO runs at a crawl - the first attempt spent 29 minutes on one
-  # archive and had not finished. Parallel segments get around per-connection
-  # throttling, which is the usual cause.
-  lftp -u "$AVISO_USER","$AVISO_PASS" "$HOST" -e "
-    set ssl:verify-certificate no;
-    set net:max-retries 3;
-    set net:timeout 30;
-    set xfer:clobber on;
-    set pget:default-n 10;
-    pget -n 10 $1 -o $2;
-    bye" && return 0
-  echo "parallel fetch failed, falling back to a single stream"
-  lftp -u "$AVISO_USER","$AVISO_PASS" "$HOST" -e "
-    set ssl:verify-certificate no;
-    set net:max-retries 3;
-    set xfer:clobber on;
-    get $1 -o $2;
-    bye"
+have_aria2 () { command -v aria2c >/dev/null 2>&1; }
+
+fetch_http () {          # fetch_http <url> <outfile>
+  local url="$1" out="$2"
+  if have_aria2; then
+    aria2c -x16 -s16 -k 32M --retry-wait=5 --max-tries=4 \
+           --timeout=60 --connect-timeout=30 \
+           --http-user="$AVISO_USER" --http-passwd="$AVISO_PASS" \
+           --summary-interval=15 --console-log-level=warn \
+           -o "$out" -d . "$url" && return 0
+    echo "aria2c failed, trying curl"
+  fi
+  curl -fL --retry 4 --retry-delay 5 --connect-timeout 30 \
+       --speed-limit 10240 --speed-time 120 \
+       -u "$AVISO_USER:$AVISO_PASS" -C - -o "$out" "$url"
 }
 
-do_component () {          # do_component <archive-base> <local-subdir>
-  local base="$1" sub="$2"
-  local tarball="${base}.tar.xz"
-
+do_component () {        # do_component <base-name> <local-subdir>
+  local base="$1" sub="$2" tarball="${base}.tar.xz"
   echo
   echo "=== $tarball ==="
+  df -h . | tail -1
+
   local t0=$SECONDS
-  grab "$DIR/$tarball" "$tarball" || { echo "::error::download failed: $tarball"; return 1; }
+  fetch_http "$BASE/$tarball" "$tarball" || { echo "::error::download failed: $tarball"; return 1; }
   local dt=$(( SECONDS - t0 )) sz
   sz=$(stat -c%s "$tarball")
   echo "downloaded $(( sz / 1048576 )) MB in ${dt}s  ($(( sz / 1048576 / (dt>0?dt:1) )) MB/s)"
 
-  # checksum, if they published one
-  if grab "$DIR/${tarball}.sha256sum" "${tarball}.sha256sum" 2>/dev/null && [ -s "${tarball}.sha256sum" ]; then
+  # published checksum, if it is there
+  if curl -fsL -u "$AVISO_USER:$AVISO_PASS" -o "${tarball}.sha256sum" \
+       "$BASE/${tarball}.sha256sum" 2>/dev/null && [ -s "${tarball}.sha256sum" ]; then
     local want have
     want=$(awk '{print $1}' "${tarball}.sha256sum" | head -1)
     have=$(sha256sum "$tarball" | awk '{print $1}')
@@ -72,18 +74,15 @@ do_component () {          # do_component <archive-base> <local-subdir>
     echo "no checksum published, continuing"
   fi
 
-  # ONE decompression pass. Listing and extracting separately meant xz ran
-  # over the whole archive twice, which on a multi-GB file is minutes wasted.
-  # -v prints each member as it is written, so the listing comes free.
+  # one decompression pass; -v gives the member listing for free
   local pats=()
   for c in $CONSTITUENTS; do
     pats+=( "--wildcards" "*${c}.nc" "--wildcards" "*$(echo "$c" | tr a-z A-Z).nc" )
   done
-  echo "--- extracting (members printed as they land) ---"
+  echo "--- extracting ---"
   tar -xJvf "$tarball" --no-anchored --wildcards-match-slash "${pats[@]}" 2>&1 | head -40 \
     || echo "selective extract returned non-zero, checking what landed"
 
-  # flatten whatever directory structure came out
   find . -path ./fes-data -prune -o -name '*.nc' -print 2>/dev/null | while read -r f; do
     b=$(basename "$f" | tr 'A-Z' 'a-z')
     for c in $CONSTITUENTS; do
@@ -95,22 +94,14 @@ do_component () {          # do_component <archive-base> <local-subdir>
   done
 
   rm -f "$tarball" "${tarball}.sha256sum"
-  # tidy any empty dirs the extract left behind
   find . -maxdepth 2 -type d -empty -not -path './.git*' -not -path './fes-data*' -delete 2>/dev/null
 }
 
-df -h . | tail -1
 do_component eastward_velocity  eastward_velocity  || exit 1
-df -h . | tail -1
 do_component northward_velocity northward_velocity || exit 1
-df -h . | tail -1
 
 got=$(find fes-data/fes2014 -name '*.nc' | wc -l)
 echo
 echo "have $got constituent files"
 find fes-data/fes2014 -name '*.nc' -printf '  %p  %s bytes\n' | sort
-if [ "$got" -lt 16 ]; then
-  echo "::error::expected 16 (8 harmonics x 2 components), got $got."
-  echo "The archive listings above show the real member names."
-  exit 1
-fi
+[ "$got" -ge 16 ] || { echo "::error::expected 16, got $got"; exit 1; }
