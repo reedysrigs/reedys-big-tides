@@ -1,0 +1,58 @@
+user admin@reedysrigs.com (password 6 chars)
+
+=== https://tds-odatis.aviso.altimetry.fr/thredds/catalog/dataset-auxiliary-fes-tide-model/fes2014a_currents/catalog.xml ===
+  status 200  1.4s  2668 bytes  application/xml;charset=UTF-8
+  --- first 3000 chars ---
+  <?xml version="1.0" encoding="UTF-8"?>
+  <catalog xmlns="http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.2">
+    <service name="http" serviceType="HTTPServer" base="/thredds/fileServer/" />
+    <service name="all" serviceType="Compound" base="">
+      <service name="http" serviceType="HTTPServer" base="/thredds/fileServer/" />
+    </service>
+    <service name="HTTPServer" serviceType="HTTPServer" base="/thredds/fileServer/" />
+    <dataset name="fes2014a_currents/">
+      <serviceName>HTTPServer</serviceName>
+      <property name="DatasetScan" value="true" />
+      <metadata inherited="true">
+        <serviceName>all</serviceName>
+      </metadata>
+      <dataset name="eastward_velocity.tar.xz" ID="dataset-auxiliary-fes-tide-model/fes2014a_currents/eastward_velocity.tar.xz" urlPath="dataset-auxiliary-fes-tide-model/fes2014a_currents/eastward_velocity.tar.xz">
+        <dataSize units="Gbytes">2.210</dataSize>
+        <date type="modified">2016-11-08T14:57:28Z</date>
+      </dataset>
+      <dataset name="eastward_velocity.tar.xz.sha256sum" ID="dataset-auxiliary-fes-tide-model/fes2014a_currents/eastward_velocity.tar.xz.sha256sum" urlPath="dataset-auxiliary-fes-tide-model/fes2014a_currents/eastward_velocity.tar.xz.sha256sum">
+        <dataSize units="bytes">91.0</dataSize>
+        <date type="modified">2016-11-08T14:53:56Z</date>
+      </dataset>
+      <dataset name="northward_velocity.tar.xz" ID="dataset-auxiliary-fes-tide-model/fes2014a_currents/northward_velocity.tar.xz" urlPath="dataset-auxiliary-fes-tide-model/fes2014a_currents/northward_velocity.tar.xz">
+        <dataSize units="Gbytes">2.215</dataSize>
+        <date type="modified">2016-11-08T14:59:49Z</date>
+      </dataset>
+      <dataset name="northward_velocity.tar.xz.sha256sum" ID="dataset-auxiliary-fes-tide-model/fes2014a_currents/northward_velocity.tar.xz.sha256sum" urlPath="dataset-auxiliary-fes-tide-model/fes2014a_currents/northward_velocity.tar.xz.sha256sum">
+        <dataSize units="bytes">92.0</dataSize>
+        <date type="modified">2016-11-08T14:53:57Z</date>
+      </dataset>
+      <dataset name="readme_fes2014_currents_v1.2.txt" ID="dataset-auxiliary-fes-tide-model/fes2014a_currents/readme_fes2014_currents_v1.2.txt" urlPath="dataset-auxiliary-fes-tide-model/fes2014a_currents/readme_fes2014_currents_v1.2.txt">
+        <dataSize units="Kbytes">1.554</dataSize>
+        <property name="NotAThreddsDataset" value="true" />
+        <date type="modified">2017-12-07T12:22:22Z</date>
+        <metadata inherited="true">
+          <serviceName>HTTPServer</serviceName>
+        </metadata>
+      </dataset>
+    </dataset>
+  </catalog>
+  
+
+=== https://tds-odatis.aviso.altimetry.fr/thredds/dodsC/dataset-auxiliary-fes-tide-model/fes2014a_currents/eastward_velocity/m2.nc.dds ===
+  status 404  1.1s  84 bytes
+  Error { |     code = 404; |     message = "FileNotFound: No such file or directory"; | }; | 
+
+=== https://tds-odatis.aviso.altimetry.fr/thredds/dodsC/dataset-auxiliary-fes-tide-model/fes2014a_currents/m2.nc.dds ===
+  status 404  0.7s  84 bytes
+  Error { |     code = 404; |     message = "FileNotFound: No such file or directory"; | }; | 
+
+=== https://tds-odatis.aviso.altimetry.fr/thredds/dodsC/auxiliary/tide_model/fes2014a_currents/eastward_velocity/m2.nc.dds ===
+  status 404  0.9s  84 bytes
+  Error { |     code = 404; |     message = "FileNotFound: No such file or directory"; | }; | 
+
