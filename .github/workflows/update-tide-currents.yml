@@ -1,0 +1,73 @@
+name: Update tidal currents
+
+# Bakes docs/tide-uv.png + docs/tide-uv.json from FES2014 tidal current
+# constituents, hourly. Completely separate from "Update tides" - it shares
+# no script and no step with it, so it cannot break the tide bot.
+
+on:
+  schedule:
+    - cron: "7 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: docs-push          # shared with any other job that pushes docs/
+  cancel-in-progress: false
+
+jobs:
+  bake:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # The constituents never change, so they are cached rather than
+      # committed. ~70 MB once, then reused on every run.
+      - name: Restore FES2014 constituents
+        id: fes-cache
+        uses: actions/cache@v4
+        with:
+          path: fes-data
+          key: fes2014-currents-au-v1
+
+      - name: Download FES2014 constituents
+        if: steps.fes-cache.outputs.cache-hit != 'true'
+        env:
+          AVISO_USER: ${{ secrets.AVISO_USER }}
+          AVISO_PASS: ${{ secrets.AVISO_PASS }}
+        run: |
+          if [ -z "$AVISO_USER" ] || [ -z "$AVISO_PASS" ]; then
+            echo "::error::AVISO_USER / AVISO_PASS are not set in this repo's secrets."
+            echo "Add them at Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+          sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          bash scripts/fetch_fes.sh
+
+      - name: Install dependencies
+        run: pip install --quiet pyTMD numpy pillow netCDF4 scipy timescale
+
+      - name: Bake the field
+        env:
+          FES_DIR: fes-data
+        run: python scripts/bake_tide_currents.py
+
+      - name: Commit and push
+        run: |
+          git config user.name  "tide-current-bot"
+          git config user.email "tide-current-bot@users.noreply.github.com"
+          git add docs/tide-uv.png docs/tide-uv.json
+          git diff --cached --quiet && { echo "nothing changed"; exit 0; }
+          git commit -m "Update tidal currents"
+          for i in 1 2 3; do
+            git pull --rebase --autostash && git push && exit 0
+            echo "push failed, retrying ($i)"; sleep 5
+          done
+          exit 1
