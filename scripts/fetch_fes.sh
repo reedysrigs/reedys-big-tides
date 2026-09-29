@@ -22,6 +22,19 @@ CONSTITUENTS="m2 s2 n2 k2 k1 o1 p1 q1"
 mkdir -p fes-data/fes2014/eastward_velocity fes-data/fes2014/northward_velocity
 
 grab () {  # grab <remote-file> <local-file>
+  # pget -n splits the file across parallel connections. A single FTP stream
+  # to AVISO runs at a crawl - the first attempt spent 29 minutes on one
+  # archive and had not finished. Parallel segments get around per-connection
+  # throttling, which is the usual cause.
+  lftp -u "$AVISO_USER","$AVISO_PASS" "$HOST" -e "
+    set ssl:verify-certificate no;
+    set net:max-retries 3;
+    set net:timeout 30;
+    set xfer:clobber on;
+    set pget:default-n 10;
+    pget -n 10 $1 -o $2;
+    bye" && return 0
+  echo "parallel fetch failed, falling back to a single stream"
   lftp -u "$AVISO_USER","$AVISO_PASS" "$HOST" -e "
     set ssl:verify-certificate no;
     set net:max-retries 3;
@@ -36,8 +49,11 @@ do_component () {          # do_component <archive-base> <local-subdir>
 
   echo
   echo "=== $tarball ==="
+  local t0=$SECONDS
   grab "$DIR/$tarball" "$tarball" || { echo "::error::download failed: $tarball"; return 1; }
-  ls -l "$tarball"
+  local dt=$(( SECONDS - t0 )) sz
+  sz=$(stat -c%s "$tarball")
+  echo "downloaded $(( sz / 1048576 )) MB in ${dt}s  ($(( sz / 1048576 / (dt>0?dt:1) )) MB/s)"
 
   # checksum, if they published one
   if grab "$DIR/${tarball}.sha256sum" "${tarball}.sha256sum" 2>/dev/null && [ -s "${tarball}.sha256sum" ]; then
