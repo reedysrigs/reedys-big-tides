@@ -1,30 +1,10 @@
 {
   "timezone": "Australia/Melbourne",
-  "generated_on": "2026-09-30",
-  "generated_at": "2026-09-30T08:58:28.776052+10:00",
+  "generated_on": "2026-10-01",
+  "generated_at": "2026-10-01T09:01:01.764348+10:00",
   "station": "Western Port (Stony Point)",
   "datum_offset_m": 0.0,
   "extremes": [
-    {
-      "date": "2026-09-22T13:33:53+10:00",
-      "height": 1.32,
-      "type": "Low"
-    },
-    {
-      "date": "2026-09-22T19:32:06+10:00",
-      "height": 2.4,
-      "type": "High"
-    },
-    {
-      "date": "2026-09-23T01:36:59+10:00",
-      "height": 0.89,
-      "type": "Low"
-    },
-    {
-      "date": "2026-09-23T08:52:56+10:00",
-      "height": 2.44,
-      "type": "High"
-    },
     {
       "date": "2026-09-23T14:22:42+10:00",
       "height": 1.42,
@@ -429,14 +409,29 @@
       "date": "2026-10-14T09:57:34+11:00",
       "height": 0.9,
       "type": "Low"
+    },
+    {
+      "date": "2026-10-14T16:04:37+11:00",
+      "height": 2.69,
+      "type": "High"
+    },
+    {
+      "date": "2026-10-14T22:01:26+11:00",
+      "height": 0.4,
+      "type": "Low"
+    },
+    {
+      "date": "2026-10-15T04:57:53+11:00",
+      "height": 3.1,
+      "type": "High"
     }
   ],
   "wp": {
-    "nextHighISO": "2026-09-30T15:06:08+10:00",
-    "nextLowISO": "2026-09-30T21:00:04+10:00",
-    "nextHigh_m": 2.78,
-    "nextLow_m": 0.4,
-    "range_m": 2.38
+    "nextHighISO": "2026-10-01T15:46:02+10:00",
+    "nextLowISO": "2026-10-01T09:34:55+10:00",
+    "nextHigh_m": 2.79,
+    "nextLow_m": 0.92,
+    "range_m": 1.87
   },
   "ppb": null,
   "source_wp": "WorldTides API",
