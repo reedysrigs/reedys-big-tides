@@ -1,0 +1,7 @@
+run      36792230922
+attempt  1
+when     2026-09-30T23:40:00Z
+outcome  failure
+
+--- last 200 lines of the fetch ---
+scripts/fetch_fes.sh: line 48: base: unbound variable
