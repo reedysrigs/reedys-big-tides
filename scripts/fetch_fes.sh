@@ -45,7 +45,11 @@ fetch_http () {          # fetch_http <url> <outfile>
 }
 
 do_component () {        # do_component <base-name> <local-subdir>
-  local base="$1" sub="$2" tarball="${base}.tar.xz"
+  local base="$1"
+  local sub="$2"
+  # NOT on one line with base: under set -u bash expands every assignment
+  # word before local creates any of them, so ${base} would be unbound.
+  local tarball="${base}.tar.xz"
   echo
   echo "=== $tarball ==="
   df -h . | tail -1
