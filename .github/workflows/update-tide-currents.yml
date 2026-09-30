@@ -36,7 +36,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: fes-data
-          key: fes2014-currents-au-v1
+          key: fes2014-currents-all34-v2
 
       - name: Download FES2014 constituents
         if: steps.fes-cache.outputs.cache-hit != 'true'

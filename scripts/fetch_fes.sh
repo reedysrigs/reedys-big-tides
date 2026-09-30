@@ -24,7 +24,11 @@ BASE="https://tds-odatis.aviso.altimetry.fr/thredds/fileServer/dataset-auxiliary
 : "${AVISO_USER:?AVISO_USER not set}"
 : "${AVISO_PASS:?AVISO_PASS not set}"
 
-CONSTITUENTS="m2 s2 n2 k2 k1 o1 p1 q1"
+# pyTMD requires every constituent its FES2014 definition lists - it will
+# go looking for all 34 and fail on the first one missing. They are all in
+# the archive we already download, so extracting the lot costs nothing but
+# disk, and the full set is more accurate than the eight principal ones.
+CONSTITUENTS="2n2 eps2 j1 k1 k2 l2 la2 m2 m3 m4 m6 m8 mf mks2 mm mn4 ms4 msf msqm mtm mu2 n2 n4 nu2 o1 p1 q1 r2 s1 s2 s4 sa ssa t2"
 mkdir -p fes-data/fes2014/eastward_velocity fes-data/fes2014/northward_velocity
 
 have_aria2 () { command -v aria2c >/dev/null 2>&1; }
