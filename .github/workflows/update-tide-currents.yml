@@ -5,8 +5,8 @@ name: Update tidal currents
 # no script and no step with it, so it cannot break the tide bot.
 
 on:
-  schedule:
-    - cron: "7 * * * *"
+  # schedule disabled until the download works - it was failing every few
+  # hours and committing nothing. Re-enable once a run succeeds.
   workflow_dispatch:
 
 permissions:
@@ -50,7 +50,9 @@ jobs:
             exit 1
           fi
           sudo apt-get update -qq && sudo apt-get install -y -qq aria2 curl
-          bash scripts/fetch_fes.sh
+          set -o pipefail
+          bash scripts/fetch_fes.sh 2>&1 | tee /tmp/fes.log
+          echo "fetch exit: ${PIPESTATUS[0]}"
 
       - name: Install dependencies
         run: pip install --quiet pyTMD numpy pillow netCDF4 scipy timescale
@@ -60,7 +62,31 @@ jobs:
           FES_DIR: fes-data
         run: python scripts/bake_tide_currents.py
 
+      - name: Report what happened
+        if: always()
+        run: |
+          mkdir -p docs
+          {
+            echo "run      ${{ github.run_id }}"
+            echo "attempt  ${{ github.run_attempt }}"
+            echo "when     $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "outcome  ${{ job.status }}"
+            echo
+            echo "--- last 200 lines of the fetch ---"
+            tail -200 /tmp/fes.log 2>/dev/null || echo "(no fetch log - the step never ran)"
+          } > docs/_fes_fetch.log
+          git config user.name  "tide-current-bot"
+          git config user.email "tide-current-bot@users.noreply.github.com"
+          git add docs/_fes_fetch.log
+          git diff --cached --quiet && exit 0
+          git commit -m "FES fetch log (${{ job.status }})"
+          for i in 1 2 3; do
+            git pull --rebase --autostash && git push && exit 0
+            sleep 5
+          done
+
       - name: Commit and push
+        if: success()
         run: |
           git config user.name  "tide-current-bot"
           git config user.email "tide-current-bot@users.noreply.github.com"
