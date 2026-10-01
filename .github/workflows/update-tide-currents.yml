@@ -125,6 +125,12 @@ jobs:
         if: success()
         run: |
           sleep 45          # Pages needs a moment after the push
+          out=docs/_tide_uv_published.txt
+          : > "$out"
+          {
+            echo "checked $(date -u +%Y-%m-%dT%H:%M:%SZ)  run ${{ github.run_id }}"
+            echo
+          } >> "$out"
           ok=0
           for base in \
             "https://reedysrigs.github.io/reedys-big-tides/docs" \
@@ -132,16 +138,29 @@ jobs:
             "https://reedysrigs.github.io/reedys-sst/docs" ; do
             code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$base/tide-uv.json" || echo 000)
             size=$(curl -s -o /dev/null -w '%{size_download}' --max-time 60 "$base/tide-uv.png" || echo 0)
-            printf '  %-56s json %s  png %s bytes\n' "$base" "$code" "$size"
+            line=$(printf '%-56s json %s  png %s bytes' "$base" "$code" "$size")
             if [ "$code" = "200" ] && [ "$size" -gt 10000 ]; then
-              echo "  ^ USABLE - point the offshore page at this base"
+              line="$line   <-- USABLE"
               ok=1
             fi
+            echo "  $line" | tee -a "$out"
           done
+          echo >> "$out"
           if [ "$ok" = "0" ]; then
+            echo "VERDICT: not reachable from any candidate base" >> "$out"
             echo "::warning::the baked files are committed but not reachable over HTTP"
             echo "::warning::from any candidate base. The page cannot load them yet."
             echo "::warning::Either enable GitHub Pages for this repo (Settings ->"
             echo "::warning::Pages -> deploy from branch main, folder /docs) or the"
             echo "::warning::bake needs to publish into the reedys-sst repo instead."
+          else
+            echo "VERDICT: reachable - see the USABLE line above" >> "$out"
           fi
+          git add "$out"
+          git diff --cached --quiet || {
+            git commit -m "tide-uv publish check"
+            for i in 1 2 3; do
+              git pull --rebase --autostash && git push && break
+              sleep 5
+            done
+          }
