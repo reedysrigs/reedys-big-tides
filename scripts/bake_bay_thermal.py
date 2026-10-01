@@ -61,6 +61,15 @@ QA_CLOUD, QA_SHADOW, QA_WATER = 1 << 3, 1 << 4, 1 << 7
 # reported rather than hidden.
 PHYS_MIN_C, PHYS_MAX_C = 6.0, 26.0
 
+# The two bays are scored and filled separately, each from its own best
+# Landsat pass. They sit in different WRS swaths - Port Phillip is reached by
+# path 093, Western Port by 092 - so one pass cannot cover both well. The
+# Mornington Peninsula sits between them, so a date seam falls over land where
+# nobody can see it. Each region records its own scene date.
+#        name,            W,       S,       E,       N
+REGIONS = [("Port Phillip", (144.35, -38.45, 145.06, -37.80)),
+           ("Western Port", (145.06, -38.70, 145.60, -38.15))]
+
 
 def grid_axes():
     """Cell-centre lon/lat. Row 0 is NORTH, matching the page's textures."""
@@ -334,10 +343,11 @@ def main():
     FRESH_DAYS = 28
     today = dt.datetime.utcnow()
 
-    def footprint_cover(group):
-        """Fraction of the bay box covered by the union of scene bboxes."""
-        gx = np.linspace(144.45, 145.00, 60)
-        gy = np.linspace(-38.35, -37.87, 60)
+    def footprint_cover(group, box=None):
+        """Fraction of a bay box covered by the union of scene footprints."""
+        bx = box or REGIONS[0][1]
+        gx = np.linspace(bx[0], bx[2], 60)
+        gy = np.linspace(bx[1], bx[3], 60)
         X, Y = np.meshgrid(gx, gy)
         hit = np.zeros(X.shape, dtype=bool)
         # The real footprint, not the bbox. Landsat scenes are rotated
@@ -364,28 +374,60 @@ def main():
 
     recent = [p for p in passes
               if (today - dt.datetime.strptime(p[0], "%Y-%m-%d")).days <= FRESH_DAYS]
-    pool = recent or passes[:4]
-    scored = []
-    for d, c, g in pool:
-        cov = footprint_cover(g)
-        age = (today - dt.datetime.strptime(d, "%Y-%m-%d")).days
-        # coverage first (in 10% bands), then cloud (5% bands), then freshness
-        scored.append(((-round(cov * 10), round(c / 5.0), age), d, c, g, cov))
-    scored.sort(key=lambda r: r[0])
-    _, day, cloud, group, cov = scored[0]
-    best = (day, cloud, group)
-    print("candidate passes (coverage / cloud / age):")
-    for k, d, c, g, cv in scored[:6]:
-        print("   %s  cover %3.0f%%  cloud %3.0f%%  age %2dd%s"
-              % (d, 100 * cv, c, k[2], "   <- chosen" if d == day else ""))
-    print("pass %s, %d scene(s), cloud %.1f%%, footprint cover %.0f%%"
-          % (day, len(group), cloud, 100 * cov))
-    # Everything older than the chosen pass is a candidate for the change layer.
-    passes = [p for p in passes
-              if dt.datetime.strptime(p[0], "%Y-%m-%d")
+    pool = recent or passes[:6]
+
+    def best_for(box, label, exclude_day=None):
+        scored = []
+        for d, c, g in pool:
+            if exclude_day and d >= exclude_day:
+                continue
+            cov = footprint_cover(g, box)
+            age = (today - dt.datetime.strptime(d, "%Y-%m-%d")).days
+            scored.append(((-round(cov * 10), round(c / 5.0), age), d, c, g, cov))
+        if not scored:
+            return None
+        scored.sort(key=lambda r: r[0])
+        print("  %s candidates:" % label)
+        for k, d, c, g, cv in scored[:4]:
+            print("     %s  cover %3.0f%%  cloud %3.0f%%  age %2dd%s"
+                  % (d, 100 * cv, c, k[2], "   <- chosen" if d == scored[0][1] else ""))
+        k, d, c, g, cv = scored[0]
+        return {"day": d, "cloud": c, "group": g, "cover": cv}
+    LON, LAT = np.meshgrid(lon, lat)
+    stack = np.full((len(lat), len(lon)), np.nan, dtype="float32")
+    region_info = []
+    chosen = {}
+    for _name, _bx in REGIONS:
+        pick = best_for(_bx, _name)
+        if not pick:
+            print("  %s: no usable pass" % _name)
+            continue
+        m = mosaic(pick["group"], lon, lat)
+        inside = (LON >= _bx[0]) & (LON <= _bx[2]) & (LAT >= _bx[1]) & (LAT <= _bx[3])
+        take = inside & np.isfinite(m)
+        stack[take] = m[take]
+        chosen[_name] = pick
+        region_info.append({
+            "region": _name, "scene_date": pick["day"],
+            "cloud_cover_pct": round(pick["cloud"], 1),
+            "footprint_cover_pct": round(100 * pick["cover"], 1),
+            "cells": int(take.sum()),
+            "wrs_paths": sorted({str(g.properties.get("landsat:wrs_path"))
+                                 for g in pick["group"]}),
+            "age_days": (today - dt.datetime.strptime(pick["day"], "%Y-%m-%d")).days})
+        print("  %s <- %s (%.0f%% cloud, %d cells)"
+              % (_name, pick["day"], pick["cloud"], int(take.sum())))
+    if not region_info:
+        print("::error::no usable pass for either bay", file=sys.stderr)
+        return 1
+    lead = max(region_info, key=lambda r: r["cells"])
+    day, cloud = lead["scene_date"], lead["cloud_cover_pct"]
+    group = chosen[lead["region"]]["group"]
+    cov = chosen[lead["region"]]["cover"]
+    passes = [pp for pp in passes
+              if dt.datetime.strptime(pp[0], "%Y-%m-%d")
               < dt.datetime.strptime(day, "%Y-%m-%d")]
-    passes.insert(0, best)
-    stack = mosaic(group, lon, lat)
+    passes.insert(0, (day, cloud, group))
 
     raw_cells = int(np.isfinite(stack).sum())
     outside = np.isfinite(stack) & ((stack < PHYS_MIN_C) | (stack > PHYS_MAX_C))
@@ -394,6 +436,45 @@ def main():
     print("physical filter %.0f-%.0f degC removed %d of %d flagged cells (%.2f%%)"
           % (PHYS_MIN_C, PHYS_MAX_C, n_out, raw_cells,
              100.0 * n_out / max(1, raw_cells)))
+
+    # --- despeckle: an isolated "water" pixel in the middle of land is a
+    # misclassification, and they were showing as black dots scattered over
+    # the Mornington Peninsula. Measured earlier: 1-2% of land cells carry the
+    # water bit. A real water pixel has water neighbours; a stray one does not.
+    okm = np.isfinite(stack)
+    nb = np.zeros(okm.shape, dtype=np.int16)
+    for dy in (-1, 0, 1):
+        for dx in (-1, 0, 1):
+            if dy or dx:
+                nb += np.roll(np.roll(okm, dy, axis=0), dx, axis=1).astype(np.int16)
+    stray = okm & (nb <= 2)
+    n_stray = int(stray.sum())
+    stack[stray] = np.nan
+    print("despeckle removed %d isolated cells (%.2f%% of water)"
+          % (n_stray, 100.0 * n_stray / max(1, int(okm.sum()))))
+
+    # --- fill small gaps from the nearest real reading. A hole in the middle
+    # of the bay reads as a different-coloured measurement to anyone looking
+    # at it, which is worse than a short extrapolation. Limited to FILL_KM so
+    # one pixel never gets to paint a whole arm of Western Port, and the count
+    # is published so the filled fraction is never a secret.
+    FILL_KM = 1.5
+    reach = int(round(FILL_KM * 1000.0 / METRES))
+    filled_from = np.zeros(stack.shape, dtype=bool)
+    try:
+        from scipy import ndimage as _nd
+        hole = ~np.isfinite(stack)
+        idx = _nd.distance_transform_edt(hole, return_distances=False,
+                                         return_indices=True)
+        dist = _nd.distance_transform_edt(hole)
+        near = stack[tuple(idx)]
+        take = hole & (dist <= reach) & np.isfinite(near)
+        stack[take] = near[take]
+        filled_from = take
+        print("gap fill: %d cells taken from the nearest reading within %.1f km"
+              % (int(take.sum()), FILL_KM))
+    except Exception as _exc:                               # noqa: BLE001
+        print("gap fill skipped (%s)" % _exc, file=sys.stderr)
 
     ok = np.isfinite(stack)
     frac = float(ok.mean())
@@ -555,12 +636,16 @@ def main():
         "physical_filter_removed_pct": round(100.0 * n_out / max(1, raw_cells), 3),
         "water_fraction": round(frac, 4),
         "water_cells": int(ok.sum()),
+        "despeckled_cells": n_stray,
+        "gap_filled_cells": int(filled_from.sum()),
+        "gap_fill_km": 1.5,
         # Coverage of the bay itself, which is what a cloudy pass actually
         # costs. The box includes a lot of land, so water_fraction alone hides
         # a hole straight through Port Phillip.
         "bay_coverage_pct": round(bay_cov, 1),
         "footprint_cover_pct": round(100 * cov, 1),
         "wrs_paths": sorted({str(g.properties.get("landsat:wrs_path")) for g in group}),
+        "regions": region_info,
         "skin_temperature": True,
     }
 
