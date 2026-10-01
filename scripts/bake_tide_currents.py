@@ -240,11 +240,24 @@ def main():
         return 1
 
     spd = np.hypot(np.where(ok, u, 0.0), np.where(ok, v, 0.0))
-    # Clip the tails so a handful of extreme cells in narrow passages do not
-    # flatten the colour ramp everywhere else. Same idea as the SST fit.
-    u_range = float(max(0.25, np.percentile(np.abs(u[ok]), 99.9)))
-    v_range = float(max(0.25, np.percentile(np.abs(v[ok]), 99.9)))
-    speed_ref = float(max(0.30, np.percentile(spd[ok], 99.9)))
+
+    # The 99.9th-percentile clip this used to carry was borrowed from the SST
+    # fit, and it is wrong for tidal currents.  SST is narrowly distributed;
+    # tidal current is violently heavy-tailed - nearly all of the ocean is slow
+    # and the interesting water is in a handful of narrow passages.  On the real
+    # field the clip came out at 0.74 m/s while the model reached 2.62 m/s, so
+    # the PNG saturated at 1.98 kn and threw away EVERY tidal race - the exact
+    # feature worth having.  Worse, the metadata still reported speed_max as
+    # 6.06 kn, which described the field before encoding, not the one shipped.
+    #
+    # So: encode the real range.  The cap is only a guard against a single rogue
+    # cell in some narrow channel flattening the scale for everything else, and
+    # it is recorded below along with how many cells it actually touched.
+    CEILING = 3.5                                   # m/s, ~6.8 kn
+    u_range = float(min(max(0.25, np.abs(u[ok]).max()), CEILING))
+    v_range = float(min(max(0.25, np.abs(v[ok]).max()), CEILING))
+    speed_ref = float(min(max(0.30, spd[ok].max()), CEILING))
+    clipped = int(((np.abs(u) > u_range) | (np.abs(v) > v_range))[ok].sum())
 
     px = encode(u, v, u_range, v_range, speed_ref)
 
@@ -261,7 +274,16 @@ def main():
         "speed_ref": speed_ref,
         "observed_max_u": float(np.abs(u[ok]).max()),
         "observed_max_v": float(np.abs(v[ok]).max()),
-        "clip_percentile": 99.9,
+        # What the PNG can actually represent, as opposed to what the model
+        # produced. These two used to disagree by a factor of three with
+        # nothing saying so.
+        "encoded_ceiling_ms": round(float(np.hypot(u_range, v_range)), 4),
+        "encoded_ceiling_kn": round(float(np.hypot(u_range, v_range) * 1.94384), 3),
+        "speed_max_kn": round(float(spd[ok].max() * 1.94384), 3),
+        "clipped_cells": clipped,
+        "quantisation_ms": round(float(2 * u_range / 255), 5),
+        "quantisation_kn": round(float(2 * u_range / 255 * 1.94384), 4),
+        "clip_ceiling_ms": CEILING,
         "water_fraction": round(water_fraction, 3),
         "tide_only": True,
         "constituents": RUN_INFO.get("constituents", []),
