@@ -393,37 +393,41 @@ def main():
                   % (d, 100 * cv, c, k[2], "   <- chosen" if d == scored[0][1] else ""))
         k, d, c, g, cv = scored[0]
         return {"day": d, "cloud": c, "group": g, "cover": cv}
-    LON, LAT = np.meshgrid(lon, lat)
     stack = np.full((len(lat), len(lon)), np.nan, dtype="float32")
     region_info = []
     chosen = {}
+    # Layer the passes instead of clipping each to a rectangle. Clipping drew
+    # the box edges straight across Bass Strait and left a vertical seam at the
+    # Mornington Peninsula. Each region's best pass is laid down in turn and
+    # only fills cells still empty, so the shape of the data is the shape of
+    # the water, not the shape of my bounding boxes.
     for _name, _bx in REGIONS:
         pick = best_for(_bx, _name)
         if not pick:
             print("  %s: no usable pass" % _name)
             continue
-        m = mosaic(pick["group"], lon, lat)
-        inside = (LON >= _bx[0]) & (LON <= _bx[2]) & (LAT >= _bx[1]) & (LAT <= _bx[3])
-        take = inside & np.isfinite(m)
-        stack[take] = m[take]
-        chosen[_name] = pick
+        key = pick["day"]
+        m = chosen[key]["grid"] if key in chosen else mosaic(pick["group"], lon, lat)
+        gap = ~np.isfinite(stack) & np.isfinite(m)
+        stack[gap] = m[gap]
+        chosen[key] = {"grid": m, "group": pick["group"]}
         region_info.append({
             "region": _name, "scene_date": pick["day"],
             "cloud_cover_pct": round(pick["cloud"], 1),
             "footprint_cover_pct": round(100 * pick["cover"], 1),
-            "cells": int(take.sum()),
+            "cells": int(gap.sum()),
             "wrs_paths": sorted({str(g.properties.get("landsat:wrs_path"))
                                  for g in pick["group"]}),
             "age_days": (today - dt.datetime.strptime(pick["day"], "%Y-%m-%d")).days})
-        print("  %s <- %s (%.0f%% cloud, %d cells)"
-              % (_name, pick["day"], pick["cloud"], int(take.sum())))
+        print("  %s <- %s (%.0f%% cloud, contributed %d cells)"
+              % (_name, pick["day"], pick["cloud"], int(gap.sum())))
     if not region_info:
         print("::error::no usable pass for either bay", file=sys.stderr)
         return 1
     lead = max(region_info, key=lambda r: r["cells"])
     day, cloud = lead["scene_date"], lead["cloud_cover_pct"]
-    group = chosen[lead["region"]]["group"]
-    cov = chosen[lead["region"]]["cover"]
+    group = chosen[lead["scene_date"]]["group"]
+    cov = lead["footprint_cover_pct"] / 100.0
     passes = [pp for pp in passes
               if dt.datetime.strptime(pp[0], "%Y-%m-%d")
               < dt.datetime.strptime(day, "%Y-%m-%d")]
@@ -437,21 +441,29 @@ def main():
           % (PHYS_MIN_C, PHYS_MAX_C, n_out, raw_cells,
              100.0 * n_out / max(1, raw_cells)))
 
-    # --- despeckle: an isolated "water" pixel in the middle of land is a
-    # misclassification, and they were showing as black dots scattered over
-    # the Mornington Peninsula. Measured earlier: 1-2% of land cells carry the
-    # water bit. A real water pixel has water neighbours; a stray one does not.
-    okm = np.isfinite(stack)
-    nb = np.zeros(okm.shape, dtype=np.int16)
-    for dy in (-1, 0, 1):
-        for dx in (-1, 0, 1):
-            if dy or dx:
-                nb += np.roll(np.roll(okm, dy, axis=0), dx, axis=1).astype(np.int16)
-    stray = okm & (nb <= 2)
-    n_stray = int(stray.sum())
-    stack[stray] = np.nan
-    print("despeckle removed %d isolated cells (%.2f%% of water)"
-          % (n_stray, 100.0 * n_stray / max(1, int(okm.sum()))))
+    # --- drop small disconnected patches. The neighbour-count despeckle was
+    # too weak: a cluster of five stray land pixels survived it, and the 3 km
+    # hole-closing then dilated those clusters into solid black blobs all over
+    # the Mornington Peninsula. A real body of water is large and connected; a
+    # misclassified patch of land is small and isolated. Remove any component
+    # under MIN_PATCH cells (1 ha at 100 m) and the blobs cannot form.
+    MIN_PATCH = 400
+    n_stray = 0
+    try:
+        from scipy import ndimage as _nd
+        valid0 = np.isfinite(stack)
+        lab, nlab = _nd.label(valid0)
+        if nlab:
+            sizes = np.bincount(lab.ravel())
+            sizes[0] = 0
+            small = np.isin(lab, np.where(sizes < MIN_PATCH)[0])
+            n_stray = int(small.sum())
+            stack[small] = np.nan
+        print("removed %d cells in patches under %d (%.2f%% of water, %d patches)"
+              % (n_stray, MIN_PATCH, 100.0 * n_stray / max(1, int(valid0.sum())),
+                 int((sizes < MIN_PATCH).sum()) if nlab else 0))
+    except Exception as _exc:                               # noqa: BLE001
+        print("patch filter skipped (%s)" % _exc, file=sys.stderr)
 
     # --- fill INTERIOR holes only. A blanket distance fill painted 35% of the
     # map from the nearest reading and happily spread past the shoreline. What
@@ -460,7 +472,7 @@ def main():
     # exactly those - it fills a gap enclosed by valid data and does not reach
     # out past the edge of the water body. Published as a count so the
     # interpolated fraction is never hidden.
-    FILL_KM = 3.0
+    FILL_KM = 1.0
     filled_from = np.zeros(stack.shape, dtype=bool)
     try:
         from scipy import ndimage as _nd
@@ -644,7 +656,7 @@ def main():
         "water_cells": int(ok.sum()),
         "despeckled_cells": n_stray,
         "gap_filled_cells": int(filled_from.sum()),
-        "gap_fill_km": 3.0,
+        "gap_fill_km": 1.0,
         # Coverage of the bay itself, which is what a cloudy pass actually
         # costs. The box includes a lot of land, so water_fraction alone hides
         # a hole straight through Port Phillip.
