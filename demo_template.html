@@ -1,0 +1,394 @@
+<title>Bay Thermal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: an instrument screen. Full-bleed canvas, controls docked top,
+   readout floats bottom-left, legend bottom-right. Single dark theme on
+   purpose - these are thermal data ramps and they need a dark ground. */
+:root{
+  --ground:#0b0d0c;          /* near-black, faint green bias, like a sounder */
+  --panel:#151917;
+  --panel-2:#1e2422;
+  --line:#2c3431;
+  --ink:#e8eeea;
+  --ink-dim:#8b९a93;
+  --amber:#f0a92b;           /* the one accent */
+  --amber-dim:#8a6520;
+  --cool:#4ea3d6;
+  --warm:#e2563f;
+  color-scheme:dark;
+  --f-display:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--f-display);
+     overflow:hidden;-webkit-text-size-adjust:100%}
+
+#wrap{position:fixed;inset:0;display:flex;flex-direction:column}
+
+header{flex:0 0 auto;background:var(--panel);border-bottom:1px solid var(--line);
+       padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top,0px));
+       display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
+h1{font-size:15px;font-weight:700;letter-spacing:.01em;margin:0;text-wrap:balance}
+.sub{font-family:var(--f-data);font-size:11px;color:var(--ink-dim);letter-spacing:.02em}
+.sub b{color:var(--amber);font-weight:500}
+
+#bar{flex:0 0 auto;background:var(--panel);border-bottom:1px solid var(--line);
+     padding:8px 16px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+button.tab{font-family:var(--f-display);font-size:12px;font-weight:600;letter-spacing:.015em;
+  background:var(--panel-2);color:var(--ink-dim);border:1px solid var(--line);
+  border-radius:3px;padding:7px 11px;cursor:pointer;transition:background .12s,color .12s}
+button.tab:hover{color:var(--ink)}
+button.tab[aria-pressed="true"]{background:var(--amber);color:#17120a;border-color:var(--amber)}
+button.tab:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.spacer{flex:1 1 auto;min-width:0}
+.hint{font-family:var(--f-data);font-size:10.5px;color:var(--ink-dim);white-space:nowrap}
+
+#stage{flex:1 1 auto;position:relative;min-height:0;overflow:hidden;touch-action:none;cursor:crosshair}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+.card{position:absolute;background:rgba(21,25,23,.93);border:1px solid var(--line);
+      border-radius:4px;padding:10px 12px;backdrop-filter:blur(6px);pointer-events:none}
+#readout{left:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));min-width:190px}
+#legend{right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));width:168px}
+.k{font-family:var(--f-data);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;
+   color:var(--ink-dim);margin:0 0 3px}
+.v{font-family:var(--f-data);font-size:19px;font-weight:500;line-height:1.15;
+   font-variant-numeric:tabular-nums;margin:0 0 7px}
+.v small{font-size:11px;color:var(--ink-dim);font-weight:400}
+.row{display:flex;justify-content:space-between;gap:10px;font-family:var(--f-data);
+     font-size:11px;font-variant-numeric:tabular-nums;margin-top:3px}
+.row span:first-child{color:var(--ink-dim)}
+#ramp{height:9px;border-radius:2px;margin:5px 0 4px}
+.ends{display:flex;justify-content:space-between;font-family:var(--f-data);font-size:10px;color:var(--ink-dim)}
+.note{font-family:var(--f-data);font-size:10px;color:var(--ink-dim);line-height:1.45;margin-top:7px}
+#err{position:absolute;inset:0;display:none;place-items:center;padding:24px;text-align:center;
+     font-family:var(--f-data);font-size:13px;color:var(--warm)}
+@media (max-width:620px){
+  #legend{display:none}
+  h1{font-size:14px}
+  .hint{display:none}
+}
+@media (prefers-reduced-motion:reduce){button.tab{transition:none}}
+</style>
+
+<div id="wrap">
+  <header>
+    <h1>Port Phillip Bay &amp; Western Port</h1>
+    <span class="sub">Landsat&nbsp;<b id="hScene">—</b> · <b id="hCloud">—</b> cloud · <b id="hRes">100&nbsp;m</b> · path&nbsp;<span id="hPath">—</span></span>
+  </header>
+
+  <div id="bar">
+    <button class="tab" id="tTemp"   type="button" aria-pressed="true">Temperature</button>
+    <button class="tab" id="tFront"  type="button" aria-pressed="false">Fronts</button>
+    <button class="tab" id="tChange" type="button" aria-pressed="false">Change</button>
+    <button class="tab" id="tCoarse" type="button" aria-pressed="false">Compare 2&nbsp;km</button>
+    <span class="spacer"></span>
+    <span class="hint">drag to pan · scroll to zoom · tap to read</span>
+  </div>
+
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div class="card" id="readout">
+      <p class="k" id="rLabel">Water temperature</p>
+      <p class="v" id="rValue">—</p>
+      <div class="row"><span>Front</span><span id="rGrad">—</span></div>
+      <div class="row"><span>Change</span><span id="rDelta">—</span></div>
+      <div class="row"><span>Position</span><span id="rPos">—</span></div>
+    </div>
+    <div class="card" id="legend">
+      <p class="k" id="lTitle">Degrees C</p>
+      <div id="ramp"></div>
+      <div class="ends"><span id="lLo">—</span><span id="lHi">—</span></div>
+      <p class="note" id="lNote"></p>
+    </div>
+    <div id="err"></div>
+  </div>
+</div>
+
+<script>
+/* ---------------------------------------------------------------- data */
+const META  = __META__;
+const DMETA = __DMETA__;
+const SRC_T = "__IMG_T__";
+const SRC_D = "__IMG_D__";
+
+const PLACES = [
+  {n:"The Rip",     lon:144.617, lat:-38.295, mark:true},
+  {n:"Queenscliff", lon:144.662, lat:-38.267},
+  {n:"Sorrento",    lon:144.743, lat:-38.336},
+  {n:"Geelong",     lon:144.360, lat:-38.141},
+  {n:"Mornington",  lon:145.038, lat:-38.223},
+  {n:"Hastings",    lon:145.187, lat:-38.302},
+  {n:"Melbourne",   lon:144.963, lat:-37.814}
+];
+
+/* ---------------------------------------------------------------- ramps */
+function ramp(stops){
+  return t=>{
+    t=Math.max(0,Math.min(1,t));
+    for(let i=0;i<stops.length-1;i++){
+      const a=stops[i],b=stops[i+1];
+      if(t>=a[0]&&t<=b[0]){
+        const u=(b[0]-a[0])?(t-a[0])/(b[0]-a[0]):0;
+        return [a[1]+(b[1]-a[1])*u, a[2]+(b[2]-a[2])*u, a[3]+(b[3]-a[3])*u];
+      }
+    }
+    const l=stops[stops.length-1];return [l[1],l[2],l[3]];
+  };
+}
+/* cool-to-hot for temperature, reading left to right as colder to warmer */
+const rTemp = ramp([[0,24,54,110],[.22,30,128,170],[.45,86,176,128],
+                    [.66,224,196,88],[.85,228,120,52],[1,196,48,52]]);
+/* fronts: dark ground to amber to white, so an edge reads as a bright line */
+const rFront= ramp([[0,10,13,12],[.35,96,58,14],[.7,240,169,43],[1,255,246,228]]);
+/* change: blue cooler, neutral mid, red warmer */
+const rDelta= ramp([[0,46,110,168],[.42,28,34,32],[.5,36,42,40],[.58,28,34,32],[1,206,74,52]]);
+
+/* ---------------------------------------------------------------- state */
+const W=META.width, H=META.height, B=META.bounds;
+let temp=null, grad=null, mask=null, dchg=null, dmask=null;
+let layers={}, view={s:1,x:0,y:0}, mode="temp", coarse=false;
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const stage=document.getElementById("stage");
+
+function fail(m){const e=document.getElementById("err");e.style.display="grid";e.textContent=m;}
+
+function offscreen(w,h){const c=document.createElement("canvas");c.width=w;c.height=h;return c;}
+
+function buildLayer(fn,w,h){
+  const c=offscreen(w,h), x=c.getContext("2d"), im=x.createImageData(w,h), d=im.data;
+  for(let i=0;i<w*h;i++){
+    const rgba=fn(i);
+    d[i*4]=rgba[0]; d[i*4+1]=rgba[1]; d[i*4+2]=rgba[2]; d[i*4+3]=rgba[3];
+  }
+  x.putImageData(im,0,0); return c;
+}
+
+function decode(img,meta,isDelta){
+  const c=offscreen(meta.width,meta.height), x=c.getContext("2d",{willReadFrequently:true});
+  x.drawImage(img,0,0);
+  const px=x.getImageData(0,0,meta.width,meta.height).data, n=meta.width*meta.height;
+  const val=new Float32Array(n), msk=new Uint8Array(n);
+  let grd=null;
+  if(!isDelta) grd=new Float32Array(n);
+  for(let i=0;i<n;i++){
+    const o=i*4;
+    msk[i]=px[o+3]>=128?1:0;
+    const q=(px[o]*256+px[o+1])/65535;
+    if(isDelta) val[i]=(q*2-1)*meta.d_max_c;
+    else{ val[i]=meta.t_min+q*(meta.t_max-meta.t_min);
+          grd[i]=px[o+2]/255*meta.grad_max_c_per_km; }
+  }
+  return {val,msk,grd};
+}
+
+function build(){
+  const lo=META.display_lo_c, hi=META.display_hi_c, span=hi-lo||1;
+  layers.temp=buildLayer(i=>{
+    if(!mask[i])return [0,0,0,0];
+    const c=rTemp((temp[i]-lo)/span); return [c[0],c[1],c[2],255];
+  },W,H);
+
+  const gmax=Math.max(.2, META.grad_max_c_per_km*0.45);
+  layers.front=buildLayer(i=>{
+    if(!mask[i])return [0,0,0,0];
+    const c=rFront(grad[i]/gmax); return [c[0],c[1],c[2],255];
+  },W,H);
+  layers.frontMax=gmax;
+
+  if(dchg){
+    const dm=DMETA.d_max_c*0.5;
+    layers.change=buildLayer(i=>{
+      if(!dmask[i])return [0,0,0,0];
+      const c=rDelta((dchg[i]/dm+1)/2); return [c[0],c[1],c[2],255];
+    },W,H);
+    layers.changeMax=dm;
+  }
+
+  /* the 2 km comparison: block-average by 20 cells, which is what the
+     existing map can physically resolve */
+  const f=20, cw=Math.floor(W/f), ch=Math.floor(H/f);
+  const bt=new Float32Array(cw*ch), bn=new Float32Array(cw*ch);
+  for(let y=0;y<ch*f;y++)for(let x=0;x<cw*f;x++){
+    const i=y*W+x; if(!mask[i])continue;
+    const j=Math.floor(y/f)*cw+Math.floor(x/f);
+    bt[j]+=temp[i]; bn[j]++;
+  }
+  layers.coarse=buildLayer(i=>{
+    if(bn[i]<f*f*0.25)return [0,0,0,0];
+    const c=rTemp((bt[i]/bn[i]-lo)/span); return [c[0],c[1],c[2],255];
+  },cw,ch);
+}
+
+/* ---------------------------------------------------------------- view */
+function fit(){
+  const r=stage.getBoundingClientRect(), dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=Math.round(r.width*dpr); cv.height=Math.round(r.height*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const s=Math.min(r.width/W, r.height/H)*0.94;
+  view={s, x:(r.width-W*s)/2, y:(r.height-H*s)/2};
+  draw();
+}
+function draw(){
+  const r=stage.getBoundingClientRect();
+  ctx.clearRect(0,0,r.width,r.height);
+  ctx.fillStyle="#0b0d0c"; ctx.fillRect(0,0,r.width,r.height);
+  const src = coarse ? layers.coarse
+            : mode==="front" ? layers.front
+            : mode==="change" ? (layers.change||layers.temp) : layers.temp;
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(src, view.x, view.y, W*view.s, H*view.s);
+
+  ctx.font="500 10px 'IBM Plex Mono',monospace";
+  ctx.textBaseline="middle";
+  for(const p of PLACES){
+    const px=view.x+((p.lon-B.west)/(B.east-B.west))*W*view.s;
+    const py=view.y+((B.north-p.lat)/(B.north-B.south))*H*view.s;
+    if(px<-40||py<-20||px>r.width+40||py>r.height+20)continue;
+    if(p.mark){
+      ctx.strokeStyle="#f0a92b"; ctx.lineWidth=1.4;
+      ctx.beginPath(); ctx.arc(px,py,6,0,Math.PI*2); ctx.stroke();
+      ctx.fillStyle="#f0a92b";
+    } else {
+      ctx.fillStyle="rgba(232,238,234,.62)";
+      ctx.fillRect(px-1.2,py-1.2,2.4,2.4);
+    }
+    ctx.fillText(p.n, px+9, py);
+  }
+}
+function cellAt(cx,cy){
+  const gx=Math.floor((cx-view.x)/view.s), gy=Math.floor((cy-view.y)/view.s);
+  if(gx<0||gy<0||gx>=W||gy>=H)return null;
+  return {i:gy*W+gx,
+          lon:B.west+(gx/(W-1))*(B.east-B.west),
+          lat:B.north-(gy/(H-1))*(B.north-B.south)};
+}
+function dm(v,isLat){
+  const h=isLat?(v<0?"S":"N"):(v<0?"W":"E"), a=Math.abs(v);
+  const d=Math.floor(a), m=(a-d)*60;
+  return d+"°"+m.toFixed(3)+"' "+h;
+}
+function readAt(cx,cy){
+  const c=cellAt(cx,cy);
+  const L=document.getElementById("rLabel"), V=document.getElementById("rValue");
+  const G=document.getElementById("rGrad"), D=document.getElementById("rDelta"),
+        P=document.getElementById("rPos");
+  if(!c||!mask[c.i]){
+    L.textContent = mode==="change"?"Change since last pass":mode==="front"?"Front strength":"Water temperature";
+    V.innerHTML="<small>no water data here</small>"; G.textContent="—"; D.textContent="—";
+    P.textContent = c ? dm(c.lat,true)+"  "+dm(c.lon,false) : "—";
+    return;
+  }
+  if(mode==="change"&&dchg){
+    L.textContent="Change since last pass";
+    const d=dmask[c.i]?dchg[c.i]:null;
+    V.innerHTML = d===null?"<small>not covered by both passes</small>"
+      :(d>=0?"+":"")+d.toFixed(2)+"<small> &deg;C in "+DMETA.days+" days</small>";
+  }else if(mode==="front"){
+    L.textContent="Front strength";
+    V.innerHTML=grad[c.i].toFixed(2)+"<small> &deg;C / km</small>";
+  }else{
+    L.textContent="Water temperature";
+    V.innerHTML=temp[c.i].toFixed(2)+"<small> &deg;C</small>";
+  }
+  G.textContent=grad[c.i].toFixed(2)+" °C/km";
+  D.textContent=(dchg&&dmask[c.i])?((dchg[c.i]>=0?"+":"")+dchg[c.i].toFixed(2)+" °C"):"—";
+  P.textContent=dm(c.lat,true)+"  "+dm(c.lon,false);
+}
+
+/* ---------------------------------------------------------------- legend */
+function legend(){
+  const t=document.getElementById("lTitle"), r=document.getElementById("ramp"),
+        lo=document.getElementById("lLo"), hi=document.getElementById("lHi"),
+        nt=document.getElementById("lNote");
+  const grad8=(fn)=>{let s=[];for(let i=0;i<=8;i++){const c=fn(i/8);
+      s.push("rgb("+(c[0]|0)+","+(c[1]|0)+","+(c[2]|0)+") "+(i/8*100).toFixed(0)+"%");}
+    return "linear-gradient(90deg,"+s.join(",")+")";};
+  if(mode==="change"&&dchg){
+    t.textContent="Change, °C"; r.style.background=grad8(rDelta);
+    lo.textContent="-"+layers.changeMax.toFixed(1); hi.textContent="+"+layers.changeMax.toFixed(1);
+    nt.textContent=DMETA.from_date+" to "+DMETA.to_date+". "+DMETA.warmed_pct+"% of the bay warmed, "+DMETA.cooled_pct+"% cooled.";
+  }else if(mode==="front"){
+    t.textContent="Front strength, °C/km"; r.style.background=grad8(rFront);
+    lo.textContent="0"; hi.textContent=layers.frontMax.toFixed(1);
+    nt.textContent="Bright is where temperature changes fastest. Median across the bay is "+META.grad_median_c_per_km.toFixed(2)+" °C/km.";
+  }else{
+    t.textContent="Water temperature, °C"; r.style.background=grad8(rTemp);
+    lo.textContent=META.display_lo_c.toFixed(1); hi.textContent=META.display_hi_c.toFixed(1);
+    nt.textContent=(coarse?"Averaged to 2 km, what the current map can resolve."
+      :"Median "+META.median_c.toFixed(2)+" °C. Half the bay sits within "+META.iqr_c.toFixed(2)+" °C of it.");
+  }
+}
+
+/* ---------------------------------------------------------------- input */
+function setMode(m){
+  mode=m;
+  for(const [id,k] of [["tTemp","temp"],["tFront","front"],["tChange","change"]])
+    document.getElementById(id).setAttribute("aria-pressed", String(k===m && !coarse));
+  if(m!=="temp"&&coarse){coarse=false;document.getElementById("tCoarse").setAttribute("aria-pressed","false");}
+  draw(); legend();
+}
+document.getElementById("tTemp").onclick  =()=>setMode("temp");
+document.getElementById("tFront").onclick =()=>setMode("front");
+document.getElementById("tChange").onclick=()=>{ if(!dchg)return; setMode("change"); };
+document.getElementById("tCoarse").onclick=e=>{
+  coarse=!coarse; mode="temp";
+  e.currentTarget.setAttribute("aria-pressed",String(coarse));
+  document.getElementById("tTemp").setAttribute("aria-pressed",String(!coarse));
+  document.getElementById("tFront").setAttribute("aria-pressed","false");
+  document.getElementById("tChange").setAttribute("aria-pressed","false");
+  draw(); legend();
+};
+
+let drag=null, pinch=null;
+stage.addEventListener("pointerdown",e=>{
+  stage.setPointerCapture(e.pointerId);
+  drag={x:e.clientX,y:e.clientY,vx:view.x,vy:view.y,moved:false};
+});
+stage.addEventListener("pointermove",e=>{
+  const r=stage.getBoundingClientRect();
+  if(drag&&e.buttons){
+    const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+    if(Math.abs(dx)+Math.abs(dy)>3)drag.moved=true;
+    view.x=drag.vx+dx; view.y=drag.vy+dy; draw();
+  } else readAt(e.clientX-r.left, e.clientY-r.top);
+});
+stage.addEventListener("pointerup",e=>{
+  const r=stage.getBoundingClientRect();
+  if(drag&&!drag.moved) readAt(e.clientX-r.left,e.clientY-r.top);
+  drag=null;
+});
+stage.addEventListener("wheel",e=>{
+  e.preventDefault();
+  const r=stage.getBoundingClientRect(), cx=e.clientX-r.left, cy=e.clientY-r.top;
+  const k=Math.exp(-e.deltaY*0.0016), ns=Math.max(0.15,Math.min(40,view.s*k)), f=ns/view.s;
+  view.x=cx-(cx-view.x)*f; view.y=cy-(cy-view.y)*f; view.s=ns; draw();
+},{passive:false});
+
+/* ---------------------------------------------------------------- boot */
+function loadImg(src){
+  return new Promise((res,rej)=>{
+    const im=new Image();
+    im.onload=()=>res(im); im.onerror=()=>rej(new Error("image failed to decode"));
+    im.src=src;
+  });
+}
+(async function(){
+  try{
+    document.getElementById("hScene").textContent=META.scene_date;
+    document.getElementById("hCloud").textContent=META.cloud_cover_pct+"%";
+    document.getElementById("hPath").textContent=(META.wrs_paths||[]).join("/");
+    const [it,id]=await Promise.all([loadImg(SRC_T), SRC_D?loadImg(SRC_D):Promise.resolve(null)]);
+    const t=decode(it,META,false); temp=t.val; mask=t.msk; grad=t.grd;
+    if(id){ const d=decode(id,DMETA,true); dchg=d.val; dmask=d.msk; }
+    else document.getElementById("tChange").disabled=true;
+    build(); fit(); legend();
+    readAt(0,0);
+    document.getElementById("rValue").innerHTML="<small>tap the map to read a spot</small>";
+  }catch(err){ fail("Could not build the view: "+err.message); }
+})();
+window.addEventListener("resize",fit);
+</script>

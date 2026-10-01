@@ -112,23 +112,66 @@ def decode(px, tmin, tmax):
     return t, px[..., 3] >= 128
 
 
+SMOOTH_RADIUS = 2       # 5x5 boxcar, ~500 m
+GRAD_BASELINE = 3       # differences over +/-3 cells, ~600 m
+
+
+def _nan_boxcar(t, ok, r):
+    """Mean over a (2r+1)^2 window, ignoring NaN. Separable, via summed areas."""
+    v = np.where(ok, t, 0.0)
+    w = ok.astype(np.float64)
+
+    def run(a):
+        c = np.cumsum(a, axis=0)
+        c = np.vstack([np.zeros((1, a.shape[1])), c])
+        lo = np.clip(np.arange(a.shape[0]) - r, 0, a.shape[0])
+        hi = np.clip(np.arange(a.shape[0]) + r + 1, 0, a.shape[0])
+        out = c[hi] - c[lo]
+        c2 = np.cumsum(out, axis=1)
+        c2 = np.hstack([np.zeros((out.shape[0], 1)), c2])
+        lo2 = np.clip(np.arange(a.shape[1]) - r, 0, a.shape[1])
+        hi2 = np.clip(np.arange(a.shape[1]) + r + 1, 0, a.shape[1])
+        return c2[:, hi2] - c2[:, lo2]
+
+    s, n = run(v), run(w)
+    out = np.full_like(t, np.nan)
+    good = n > 0
+    out[good] = s[good] / n[good]
+    return out
+
+
 def gradient_per_km(temp_c, lon, lat):
     """Magnitude of the horizontal temperature gradient, degC per km.
 
-    Computed with one-sided differences at the edges of the valid-data mask so
-    a front against a cloud hole or the shoreline does not manufacture a fake
-    edge - NaN neighbours simply do not contribute.
+    Smoothed first, and differenced over a baseline of several cells, because
+    at single-pixel spacing this measures the SENSOR, not the water. TIRS has
+    radiometric noise around 0.1 degC; across one 100 m cell that is already
+    1.0 degC/km, against a measured whole-bay median of 0.37. The first version
+    of this layer rendered as uniform speckle for exactly that reason - it was
+    a picture of detector noise.
+
+    A 5x5 mean cuts the noise about fivefold and a 600 m baseline divides it
+    again, which puts the noise floor near 0.05 degC/km while leaving real
+    fronts - which run over hundreds of metres to kilometres - untouched.
+
+    One-sided differences at the edge of the valid-data mask, so a front
+    against a cloud hole or the shoreline does not manufacture a fake edge.
     """
-    t = np.asarray(temp_c, dtype=np.float64)
-    ok = np.isfinite(t)
+    t0 = np.asarray(temp_c, dtype=np.float64)
+    ok0 = np.isfinite(t0)
+    t = _nan_boxcar(t0, ok0, SMOOTH_RADIUS)
+    ok = np.isfinite(t) & ok0
+    t = np.where(ok, t, np.nan)
     filled = np.where(ok, t, 0.0)
 
     def diff(axis, spacing_km):
+        k = GRAD_BASELINE
+        spacing_km = spacing_km * k          # the baseline, not one cell
         a = np.full_like(t, np.nan)
-        f = np.roll(filled, -1, axis=axis)
-        b = np.roll(filled, 1, axis=axis)
-        fo = np.roll(ok, -1, axis=axis)
-        bo = np.roll(ok, 1, axis=axis)
+        f = np.roll(filled, -k, axis=axis)
+        b = np.roll(filled, k, axis=axis)
+        fo = np.roll(ok, -k, axis=axis)
+        bo = np.roll(ok, k, axis=axis)
         both = fo & bo & ok
         one_f = fo & ~bo & ok
         one_b = bo & ~fo & ok
@@ -141,9 +184,9 @@ def gradient_per_km(temp_c, lon, lat):
         a[one_b] = (t[one_b] - b[one_b]) / sb
         # the wrap-around row/column is meaningless
         sl = [slice(None)] * t.ndim
-        sl[axis] = 0
+        sl[axis] = slice(0, GRAD_BASELINE)
         a[tuple(sl)] = np.nan
-        sl[axis] = -1
+        sl[axis] = slice(-GRAD_BASELINE, None)
         a[tuple(sl)] = np.nan
         return a
 
