@@ -1,0 +1,58 @@
+name: Probe Landsat thermal over the bays
+
+# Can we get 100 m thermal imagery over Port Phillip Bay and Western Port?
+# The current SST is ~2 km, which puts the whole of Port Phillip in about 25
+# pixels - every structure inside it is averaged away before it can be drawn.
+#
+# One run answers every unknown: catalog reachability, which scenes cover the
+# bays and how cloudy, anonymous asset signing, whether a sub-window of the
+# thermal band can be read without pulling a ~1 GB scene, and whether the
+# scaled values are physically sane. Findings are committed to the repo
+# because the Actions log is not reachable from the sandbox that wrote this.
+#
+# Read-only with respect to the map.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: landsat-bays-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install --quiet numpy rasterio pystac-client planetary-computer
+          python -c "import rasterio;print('rasterio',rasterio.__version__,'GDAL',rasterio.__gdal_version__)"
+
+      - name: Probe
+        run: python scripts/probe_landsat_bays.py
+
+      - name: Commit the report
+        if: always()
+        run: |
+          git config user.name  "tide-current-bot"
+          git config user.email "tide-current-bot@users.noreply.github.com"
+          git add docs/_landsat_bays_probe.md 2>/dev/null || true
+          git diff --cached --quiet && { echo "nothing to commit"; exit 0; }
+          git commit -m "Landsat bays probe (${{ job.status }})"
+          for i in 1 2 3; do
+            git pull --rebase --autostash && git push && exit 0
+            sleep 5
+          done
+          exit 1
