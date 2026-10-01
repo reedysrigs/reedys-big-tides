@@ -453,28 +453,34 @@ def main():
     print("despeckle removed %d isolated cells (%.2f%% of water)"
           % (n_stray, 100.0 * n_stray / max(1, int(okm.sum()))))
 
-    # --- fill small gaps from the nearest real reading. A hole in the middle
-    # of the bay reads as a different-coloured measurement to anyone looking
-    # at it, which is worse than a short extrapolation. Limited to FILL_KM so
-    # one pixel never gets to paint a whole arm of Western Port, and the count
-    # is published so the filled fraction is never a secret.
-    FILL_KM = 0.8
-    reach = int(round(FILL_KM * 1000.0 / METRES))
+    # --- fill INTERIOR holes only. A blanket distance fill painted 35% of the
+    # map from the nearest reading and happily spread past the shoreline. What
+    # actually needs closing is a hole surrounded by water: cloud shadow, a
+    # rejected pixel, a gap between the two swaths. Morphological closing finds
+    # exactly those - it fills a gap enclosed by valid data and does not reach
+    # out past the edge of the water body. Published as a count so the
+    # interpolated fraction is never hidden.
+    FILL_KM = 3.0
     filled_from = np.zeros(stack.shape, dtype=bool)
     try:
         from scipy import ndimage as _nd
-        hole = ~np.isfinite(stack)
-        idx = _nd.distance_transform_edt(hole, return_distances=False,
-                                         return_indices=True)
-        dist = _nd.distance_transform_edt(hole)
-        near = stack[tuple(idx)]
-        take = hole & (dist <= reach) & np.isfinite(near)
-        stack[take] = near[take]
-        filled_from = take
-        print("gap fill: %d cells taken from the nearest reading within %.1f km"
-              % (int(take.sum()), FILL_KM))
+        r = int(round(FILL_KM * 1000.0 / METRES))
+        yy, xx = np.ogrid[-r:r + 1, -r:r + 1]
+        disk = (xx * xx + yy * yy) <= r * r
+        valid = np.isfinite(stack)
+        enclosed = _nd.binary_closing(valid, structure=disk)
+        hole = enclosed & ~valid
+        if hole.any():
+            idx = _nd.distance_transform_edt(~valid, return_distances=False,
+                                             return_indices=True)
+            near = stack[tuple(idx)]
+            take = hole & np.isfinite(near)
+            stack[take] = near[take]
+            filled_from = take
+        print("interior fill: %d cells closed from the nearest reading "
+              "(%.1f km closing radius)" % (int(filled_from.sum()), FILL_KM))
     except Exception as _exc:                               # noqa: BLE001
-        print("gap fill skipped (%s)" % _exc, file=sys.stderr)
+        print("interior fill skipped (%s)" % _exc, file=sys.stderr)
 
     ok = np.isfinite(stack)
     frac = float(ok.mean())
@@ -638,7 +644,7 @@ def main():
         "water_cells": int(ok.sum()),
         "despeckled_cells": n_stray,
         "gap_filled_cells": int(filled_from.sum()),
-        "gap_fill_km": 0.8,
+        "gap_fill_km": 3.0,
         # Coverage of the bay itself, which is what a cloudy pass actually
         # costs. The box includes a lot of land, so water_fraction alone hides
         # a hole straight through Port Phillip.
