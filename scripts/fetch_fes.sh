@@ -24,11 +24,20 @@ BASE="https://tds-odatis.aviso.altimetry.fr/thredds/fileServer/dataset-auxiliary
 : "${AVISO_USER:?AVISO_USER not set}"
 : "${AVISO_PASS:?AVISO_PASS not set}"
 
-# pyTMD requires every constituent its FES2014 definition lists - it will
-# go looking for all 34 and fail on the first one missing. They are all in
-# the archive we already download, so extracting the lot costs nothing but
-# disk, and the full set is more accurate than the eight principal ones.
-CONSTITUENTS="2n2 eps2 j1 k1 k2 l2 la2 m2 m3 m4 m6 m8 mf mks2 mm mn4 ms4 msf msqm mtm mu2 n2 n4 nu2 o1 p1 q1 r2 s1 s2 s4 sa ssa t2"
+# We want every constituent the archive carries: the eight principal ones plus
+# the shallow-water overtides (m4, ms4, mn4, m6 ...) that are exactly what makes
+# the flow asymmetric in constricted water like The Rip and Western Port.
+#
+# So there is nothing to select, and selecting was actively harmful:
+#   - "--wildcards *s2.nc" also matches eps2.nc and mks2.nc, so a later
+#     "*ssa.nc" pattern then reports "Not found in archive" and tar exits
+#     non-zero for no real reason.
+#   - the output was piped to "head -40".  Once head closes the pipe tar takes
+#     SIGPIPE and STOPS EXTRACTING.  Verified: the same command with head -20
+#     extracts 20 of 34 files and still exits via the "|| echo" path, and the
+#     old "got >= 16" check would have passed on a short set.
+# Extracting the whole archive has neither problem and is simpler.
+EXPECT_CONSTITUENTS=34
 mkdir -p fes-data/fes2014/eastward_velocity fes-data/fes2014/northward_velocity
 
 have_aria2 () { command -v aria2c >/dev/null 2>&1; }
@@ -82,34 +91,60 @@ do_component () {        # do_component <base-name> <local-subdir>
     echo "no checksum published, continuing"
   fi
 
-  # one decompression pass; -v gives the member listing for free
-  local pats=()
-  for c in $CONSTITUENTS; do
-    pats+=( "--wildcards" "*${c}.nc" "--wildcards" "*$(echo "$c" | tr a-z A-Z).nc" )
-  done
+  # One decompression pass, whole archive, NO pipe on tar.  A pipe here can
+  # SIGPIPE tar partway through extraction (see the note at the top); the log
+  # goes to a file and we print a bounded tail of it instead.
   echo "--- extracting ---"
-  tar -xJvf "$tarball" --no-anchored --wildcards-match-slash "${pats[@]}" 2>&1 | head -40 \
-    || echo "selective extract returned non-zero, checking what landed"
+  local log="extract-${sub}.log"
+  if tar -xJf "$tarball" >"$log" 2>&1; then
+    echo "  extract OK"
+  else
+    echo "::error::extract failed for $tarball"
+    tail -20 "$log" | sed 's/^/    /'
+    rm -f "$log"
+    return 1
+  fi
+  rm -f "$log"
 
-  find . -path ./fes-data -prune -o -name '*.nc' -print 2>/dev/null | while read -r f; do
+  # Move into place under the lowercase constituent name.
+  local placed=0 f b
+  while IFS= read -r f; do
     b=$(basename "$f" | tr 'A-Z' 'a-z')
-    for c in $CONSTITUENTS; do
-      if [ "$b" = "${c}.nc" ]; then
-        mv -f "$f" "fes-data/fes2014/$sub/${c}.nc"
-        echo "  placed $sub/${c}.nc  ($(stat -c%s "fes-data/fes2014/$sub/${c}.nc") bytes)"
-      fi
-    done
-  done
+    mv -f "$f" "fes-data/fes2014/$sub/$b"
+    placed=$(( placed + 1 ))
+  done < <(find . -path ./fes-data -prune -o -name '*.nc' -print 2>/dev/null)
+  echo "  placed $placed files into fes-data/fes2014/$sub"
 
+  # The tarball is 2 GB and we are about to hold 4.5 GB of .nc; drop it now.
   rm -f "$tarball" "${tarball}.sha256sum"
   find . -maxdepth 2 -type d -empty -not -path './.git*' -not -path './fes-data*' -delete 2>/dev/null
+
+  # Crop to the Australian box BEFORE anything caches these.  Each global file
+  # is 132 MB (5761 x 2881 float32 amplitude + phase); 34 x 2 of them is 9.0 GB
+  # against GitHub's 10 GB per-repo cache ceiling.  Cropping is verified
+  # lossless inside the box - pyTMD returns bit-for-bit identical currents from
+  # cropped files - and takes the set to a few hundred MB.
+  echo "--- cropping $sub to the Australian box ---"
+  if ! python3 scripts/crop_fes.py fes-data/fes2014/"$sub"/*.nc; then
+    echo "::error::crop failed for $sub"
+    return 1
+  fi
+
+  local n
+  n=$(find "fes-data/fes2014/$sub" -name '*.nc' | wc -l)
+  if [ "$n" -ne "$EXPECT_CONSTITUENTS" ]; then
+    echo "::error::$sub has $n constituent files, expected $EXPECT_CONSTITUENTS"
+    return 1
+  fi
+  echo "  $sub: $n constituents, $(du -sh "fes-data/fes2014/$sub" | cut -f1) after cropping"
 }
 
 do_component eastward_velocity  eastward_velocity  || exit 1
 do_component northward_velocity northward_velocity || exit 1
 
 got=$(find fes-data/fes2014 -name '*.nc' | wc -l)
+want=$(( EXPECT_CONSTITUENTS * 2 ))
 echo
-echo "have $got constituent files"
+echo "have $got constituent files, total $(du -sh fes-data | cut -f1)"
 find fes-data/fes2014 -name '*.nc' -printf '  %p  %s bytes\n' | sort
-[ "$got" -ge 16 ] || { echo "::error::expected 16, got $got"; exit 1; }
+[ "$got" -eq "$want" ] || { echo "::error::expected $want files, got $got"; exit 1; }

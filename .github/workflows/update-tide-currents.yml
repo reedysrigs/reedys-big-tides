@@ -13,13 +13,18 @@ permissions:
   contents: write
 
 concurrency:
-  group: docs-push          # shared with any other job that pushes docs/
+  # Only against itself. A cold run downloads 4.2 GB and takes well over half
+  # an hour, and it must not sit in front of the hourly tide bot - that uses
+  # its own group (update-tides) and is deliberately left alone here.
+  group: tide-currents
   cancel-in-progress: false
 
 jobs:
   bake:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # Cold run measured: 492 s per archive download, x2, plus extraction and
+    # cropping of 68 files. 45 minutes was too tight to be safe.
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,14 +34,21 @@ jobs:
         with:
           python-version: "3.11"
 
-      # The constituents never change, so they are cached rather than
-      # committed. ~70 MB once, then reused on every run.
+      # Dependencies FIRST: the fetch script crops each constituent to the
+      # Australian box as it lands, which needs xarray and netCDF4. Installing
+      # after the download would fail the fetch on a cold cache.
+      - name: Install dependencies
+        run: pip install --quiet pyTMD numpy pillow netCDF4 xarray scipy timescale
+
+      # The constituents never change, so they are cached rather than committed.
+      # Cropped to the AU box they are a few hundred MB; uncropped they would be
+      # 9.0 GB against GitHub's 10 GB per-repo ceiling.
       - name: Restore FES2014 constituents
         id: fes-cache
         uses: actions/cache@v4
         with:
           path: fes-data
-          key: fes2014-currents-all34-v2
+          key: fes2014-currents-au-crop-all34-v3
 
       - name: Download FES2014 constituents
         if: steps.fes-cache.outputs.cache-hit != 'true'
@@ -53,9 +65,6 @@ jobs:
           set -o pipefail
           bash scripts/fetch_fes.sh 2>&1 | tee /tmp/fes.log
           echo "fetch exit: ${PIPESTATUS[0]}"
-
-      - name: Install dependencies
-        run: pip install --quiet pyTMD numpy pillow netCDF4 scipy timescale
 
       - name: Bake the field
         env:

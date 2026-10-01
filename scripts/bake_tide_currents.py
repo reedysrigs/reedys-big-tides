@@ -80,19 +80,121 @@ def decode(px, u_range, v_range):
 
 
 # ---------------------------------------------------------------- model
+# pyTMD's own FES2014 database entry cannot be used here, for two reasons,
+# both verified rather than assumed:
+#
+#   1. model.from_database() runs pathfinder() over EVERY group it knows,
+#      including 'z' (ocean_tide/).  We only download the two current
+#      archives, so it raises FileNotFoundError on fes2014/ocean_tide/2n2.nc
+#      before it ever looks at a current file.  Writing our own definition
+#      file with only u and v avoids a third 2 GB download we have no use for.
+#
+#   2. It hard-codes all 34 constituents, so a single missing file is fatal.
+#      Building the list from what is actually on disk means a partial fetch
+#      is reported honestly below instead of dying inside pyTMD.
+#
+# Definition-file format is pyTMD's own JSON, matching its FES2014 entry.
+U_SUBDIR, V_SUBDIR = "eastward_velocity", "northward_velocity"
+
+# Every constituent FES2014 publishes. The two current archives contain all of
+# them, so a healthy fetch produces exactly this set.
+FES2014_ALL = (
+    "2n2 eps2 j1 k1 k2 l2 la2 m2 m3 m4 m6 m8 mf mks2 mm mn4 ms4 msf msqm mtm "
+    "mu2 n2 n4 nu2 o1 p1 q1 r2 s1 s2 s4 sa ssa t2"
+).split()
+
+# Filled in by tidal_currents() so the metadata can state exactly what the
+# field was built from, rather than what we hoped it was built from.
+RUN_INFO = {}
+
+
+def present_constituents(directory):
+    """Constituents with BOTH a u and a v file under `directory`. Sorted."""
+    root = os.path.join(directory, "fes2014")
+    def names(sub):
+        d = os.path.join(root, sub)
+        if not os.path.isdir(d):
+            return set()
+        return {f[:-3] for f in os.listdir(d) if f.endswith(".nc")}
+    u, v = names(U_SUBDIR), names(V_SUBDIR)
+    both = sorted(u & v)
+    only_u, only_v = sorted(u - v), sorted(v - u)
+    if only_u or only_v:
+        print("WARNING: unpaired constituents ignored - u-only %r, v-only %r"
+              % (only_u, only_v), file=sys.stderr)
+    return both
+
+
+def write_definition(path, constituents):
+    """pyTMD JSON definition for FES2014 currents, u and v groups only."""
+    spec = {
+        "format": "FES-netcdf",
+        "name": "FES2014-currents-AU",
+        "version": "FES2014",
+        "reference": "https://www.aviso.altimetry.fr/en/data/products"
+                     "auxiliary-products/global-tide-fes.html",
+        "projection": {"datum": "WGS84", "ellps": "WGS84", "lon_wrap": 180,
+                       "proj": "longlat", "type": "crs"},
+        "u": {"model_file": ["fes2014/%s/%s.nc" % (U_SUBDIR, c)
+                             for c in constituents],
+              "units": "cm/s", "variable": "zonal_tidal_current"},
+        "v": {"model_file": ["fes2014/%s/%s.nc" % (V_SUBDIR, c)
+                             for c in constituents],
+              "units": "cm/s", "variable": "meridional_tidal_current"},
+    }
+    with open(path, "w") as fh:
+        json.dump(spec, fh, indent=1)
+    return path
+
+
 def tidal_currents(when, directory):
     """u, v in m/s on the output grid at UTC time `when`. NaN over land."""
     import pyTMD.compute
+
+    cons = present_constituents(directory)
+    if len(cons) < 8:
+        raise SystemExit("::error::only %d paired constituents on disk (%r); "
+                         "need at least the 8 principal ones"
+                         % (len(cons), cons))
+    print("using %d constituents: %s" % (len(cons), " ".join(cons)))
+
+    # pyTMD infers the minor constituents by default, and that inference reads
+    # specific majors by name - _infer_short_period() does
+    #     dmin["eps2"] = 0.53285 * ds["2n2"] - 0.03304 * ds["n2"]
+    # so a set missing 2n2 dies with KeyError: '2n2' deep inside predict/.
+    # With the complete 34 it is fine (verified).  With anything less, turn the
+    # inference off rather than crash: slightly coarser, still a usable field,
+    # and the metadata records what was actually used.
+    missing = [c for c in FES2014_ALL if c not in cons]
+    infer_minor = not missing
+    RUN_INFO["constituents"] = cons
+    RUN_INFO["missing"] = missing
+    RUN_INFO["infer_minor"] = infer_minor
+    if missing:
+        print("WARNING: missing %d constituent(s): %s" % (len(missing), " ".join(missing)),
+              file=sys.stderr)
+        print("WARNING: minor-constituent inference disabled - it needs the full set",
+              file=sys.stderr)
+
+    defn = write_definition(os.path.join(directory, "fes2014-currents.json"), cons)
 
     lon, lat = grid_axes()
     epoch = (2000, 1, 1, 0, 0, 0)
     t0 = dt.datetime(*epoch, tzinfo=dt.timezone.utc)
     delta = np.array([(when - t0).total_seconds()])
 
+    # method: pyTMD 3.0.9 accepts only 'linear' and 'nearest'.  'spline' raises
+    # ValueError("Unknown interpolation method") - it is not a valid option here.
+    #
+    # No crop=True: the constituent files on disk are ALREADY cropped to this
+    # box by scripts/crop_fes.py during the fetch, so pyTMD's own crop would
+    # re-do work for nothing - and it goes through ds.chunk(), which raises
+    # ImportError("chunk manager 'dask' is not available") unless dask is
+    # installed.  Dropping it removes both the overhead and the dependency.
     common = dict(
-        directory=directory, model=MODEL, type="grid",
-        epoch=epoch, standard="UTC", method="spline",
-        crop=True, bounds=[WEST, EAST, SOUTH, NORTH], buffer=1.0,
+        directory=directory, definition_file=defn, type="grid",
+        epoch=epoch, standard="UTC", method="linear",
+        infer_minor=infer_minor,
     )
     out = pyTMD.compute.tide_currents(lon, lat, delta, **common)
 
@@ -162,6 +264,10 @@ def main():
         "clip_percentile": 99.9,
         "water_fraction": round(water_fraction, 3),
         "tide_only": True,
+        "constituents": RUN_INFO.get("constituents", []),
+        "constituent_count": len(RUN_INFO.get("constituents", [])),
+        "missing_constituents": RUN_INFO.get("missing", []),
+        "infer_minor": RUN_INFO.get("infer_minor", False),
     }
     write(px, meta)
     print("wrote %s  %dx%d  water %.1f%%  max %.2f m/s (%.1f kn)"
