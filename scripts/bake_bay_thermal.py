@@ -545,6 +545,29 @@ def main():
     gok = np.isfinite(grad)
     grad_max = float(np.percentile(grad[gok], 99.0)) if gok.any() else 1.0
     grad_max = max(0.05, grad_max)
+
+    # A second, TIGHTER scale for display. grad_max is set by the shoreline
+    # margins, where shallow water meets the beach and the gradient is far
+    # steeper than anything mid-bay - so colouring from 0 to grad_max draws a
+    # bright shoreline and leaves the structure through the middle of the bay,
+    # which is the part worth fishing, in the dim bottom few percent. Measured
+    # from water at least 1 km from any edge instead, and let the shoreline
+    # saturate.
+    deep = interior.copy()
+    rdeep = 10                                   # 1 km at 100 m
+    for dy in range(-rdeep, rdeep + 1, 2):
+        for dx in range(-rdeep, rdeep + 1, 2):
+            if dy or dx:
+                deep &= np.roll(np.roll(ok, dy, axis=0), dx, axis=1)
+    dsel = deep & gok
+    if dsel.sum() > 2000:
+        grad_display = float(np.percentile(grad[dsel], 95.0))
+        grad_display = float(min(max(0.08, grad_display), grad_max))
+    else:
+        grad_display = grad_max * 0.5
+    print("fronts display scale %.3f degC/km from %d mid-bay cells "
+          "(full range to %.3f at the shoreline)"
+          % (grad_display, int(dsel.sum()), grad_max))
     print("fronts: %d interior cells (%.0f%% of water), median %.3f, "
           "99th pct %.3f degC/km"
           % (gok.sum(), 100.0 * gok.sum() / max(1, ok.sum()),
@@ -628,6 +651,8 @@ def main():
         "quantisation_c": round((tmax - tmin) / 65535.0, 5),
         # The fronts layer, carried in the blue channel.
         "grad_max_c_per_km": round(grad_max, 4),
+        "grad_display_c_per_km": round(grad_display, 4),
+        "grad_display_cells": int(dsel.sum()),
         "grad_decode": "degC_per_km = B / 255 * grad_max_c_per_km",
         "grad_interior_only": True,
         "grad_note": ("Gradient is reported only where there is water for two "
