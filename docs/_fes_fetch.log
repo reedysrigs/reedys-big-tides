@@ -1,7 +1,206 @@
-run      36792230922
+run      36792416957
 attempt  1
-when     2026-09-30T23:40:00Z
+when     2026-10-01T00:01:44Z
 outcome  failure
 
 --- last 200 lines of the fetch ---
-scripts/fetch_fes.sh: line 48: base: unbound variable
+
+[#3d1bdc 1.4GiB/2.0GiB(69%) CN:16 DL:10MiB ETA:1m2s]
+[#3d1bdc 1.4GiB/2.0GiB(70%) CN:16 DL:10MiB ETA:1m1s]
+[#3d1bdc 1.4GiB/2.0GiB(70%) CN:16 DL:10MiB ETA:1m]
+[#3d1bdc 1.4GiB/2.0GiB(71%) CN:16 DL:10MiB ETA:58s]
+[#3d1bdc 1.4GiB/2.0GiB(71%) CN:16 DL:10MiB ETA:58s]
+[#3d1bdc 1.4GiB/2.0GiB(72%) CN:16 DL:10MiB ETA:57s]
+[#3d1bdc 1.4GiB/2.0GiB(72%) CN:16 DL:10MiB ETA:57s]
+[#3d1bdc 1.5GiB/2.0GiB(73%) CN:16 DL:10MiB ETA:56s]
+[#3d1bdc 1.5GiB/2.0GiB(73%) CN:16 DL:9.8MiB ETA:56s]
+[#3d1bdc 1.5GiB/2.0GiB(73%) CN:16 DL:9.6MiB ETA:56s]
+[#3d1bdc 1.5GiB/2.0GiB(74%) CN:16 DL:9.6MiB ETA:55s]
+[#3d1bdc 1.5GiB/2.0GiB(74%) CN:16 DL:9.7MiB ETA:54s]
+[#3d1bdc 1.5GiB/2.0GiB(75%) CN:16 DL:9.7MiB ETA:53s]
+[#3d1bdc 1.5GiB/2.0GiB(75%) CN:16 DL:9.7MiB ETA:52s]
+[#3d1bdc 1.5GiB/2.0GiB(76%) CN:16 DL:9.8MiB ETA:50s]
+[#3d1bdc 1.5GiB/2.0GiB(76%) CN:16 DL:10MiB ETA:48s]
+ *** Download Progress Summary as of Wed Sep 30 23:57:14 2026 *** 
+===============================================================================
+[#3d1bdc 1.5GiB/2.0GiB(77%) CN:16 DL:10MiB ETA:47s]
+FILE: ./northward_velocity.tar.xz
+-------------------------------------------------------------------------------
+
+[#3d1bdc 1.5GiB/2.0GiB(77%) CN:16 DL:10MiB ETA:47s]
+[#3d1bdc 1.6GiB/2.0GiB(77%) CN:16 DL:10MiB ETA:45s]
+[#3d1bdc 1.6GiB/2.0GiB(78%) CN:16 DL:10MiB ETA:43s]
+[#3d1bdc 1.6GiB/2.0GiB(78%) CN:15 DL:10MiB ETA:42s]
+[#3d1bdc 1.6GiB/2.0GiB(79%) CN:14 DL:10MiB ETA:41s]
+[#3d1bdc 1.6GiB/2.0GiB(79%) CN:14 DL:10MiB ETA:40s]
+[#3d1bdc 1.6GiB/2.0GiB(80%) CN:14 DL:10MiB ETA:41s]
+[#3d1bdc 1.6GiB/2.0GiB(80%) CN:14 DL:9.7MiB ETA:42s]
+[#3d1bdc 1.6GiB/2.0GiB(80%) CN:14 DL:9.4MiB ETA:43s]
+[#3d1bdc 1.6GiB/2.0GiB(81%) CN:14 DL:9.0MiB ETA:44s]
+[#3d1bdc 1.6GiB/2.0GiB(81%) CN:14 DL:8.6MiB ETA:45s]
+[#3d1bdc 1.6GiB/2.0GiB(81%) CN:14 DL:8.3MiB ETA:45s]
+[#3d1bdc 1.6GiB/2.0GiB(82%) CN:14 DL:8.1MiB ETA:45s]
+[#3d1bdc 1.7GiB/2.0GiB(82%) CN:14 DL:7.9MiB ETA:46s]
+[#3d1bdc 1.7GiB/2.0GiB(83%) CN:14 DL:7.7MiB ETA:46s]
+[#3d1bdc 1.7GiB/2.0GiB(83%) CN:13 DL:7.3MiB ETA:47s]
+ *** Download Progress Summary as of Wed Sep 30 23:57:30 2026 *** 
+===============================================================================
+[#3d1bdc 1.7GiB/2.0GiB(83%) CN:13 DL:7.2MiB ETA:47s]
+FILE: ./northward_velocity.tar.xz
+-------------------------------------------------------------------------------
+
+[#3d1bdc 1.7GiB/2.0GiB(83%) CN:13 DL:7.2MiB ETA:47s]
+[#3d1bdc 1.7GiB/2.0GiB(83%) CN:13 DL:7.1MiB ETA:47s]
+[#3d1bdc 1.7GiB/2.0GiB(84%) CN:13 DL:6.9MiB ETA:48s]
+[#3d1bdc 1.7GiB/2.0GiB(84%) CN:12 DL:6.7MiB ETA:48s]
+[#3d1bdc 1.7GiB/2.0GiB(84%) CN:12 DL:6.4MiB ETA:50s]
+[#3d1bdc 1.7GiB/2.0GiB(84%) CN:11 DL:6.1MiB ETA:52s]
+[#3d1bdc 1.7GiB/2.0GiB(85%) CN:11 DL:5.8MiB ETA:53s]
+[#3d1bdc 1.7GiB/2.0GiB(85%) CN:11 DL:5.5MiB ETA:56s]
+[#3d1bdc 1.7GiB/2.0GiB(85%) CN:11 DL:5.1MiB ETA:58s]
+[#3d1bdc 1.7GiB/2.0GiB(85%) CN:11 DL:5.0MiB ETA:59s]
+[#3d1bdc 1.7GiB/2.0GiB(86%) CN:11 DL:5.1MiB ETA:57s]
+[#3d1bdc 1.7GiB/2.0GiB(86%) CN:11 DL:5.1MiB ETA:56s]
+[#3d1bdc 1.7GiB/2.0GiB(86%) CN:11 DL:5.2MiB ETA:54s]
+[#3d1bdc 1.7GiB/2.0GiB(86%) CN:11 DL:5.3MiB ETA:51s]
+[#3d1bdc 1.7GiB/2.0GiB(87%) CN:11 DL:5.5MiB ETA:48s]
+[#3d1bdc 1.8GiB/2.0GiB(87%) CN:11 DL:5.8MiB ETA:45s]
+ *** Download Progress Summary as of Wed Sep 30 23:57:45 2026 *** 
+===============================================================================
+[#3d1bdc 1.8GiB/2.0GiB(87%) CN:11 DL:6.0MiB ETA:42s]
+FILE: ./northward_velocity.tar.xz
+-------------------------------------------------------------------------------
+
+[#3d1bdc 1.8GiB/2.0GiB(87%) CN:11 DL:6.0MiB ETA:42s]
+[#3d1bdc 1.8GiB/2.0GiB(88%) CN:11 DL:6.2MiB ETA:39s]
+[#3d1bdc 1.8GiB/2.0GiB(88%) CN:11 DL:6.4MiB ETA:37s]
+[#3d1bdc 1.8GiB/2.0GiB(88%) CN:11 DL:6.5MiB ETA:36s]
+[#3d1bdc 1.8GiB/2.0GiB(89%) CN:11 DL:6.6MiB ETA:34s]
+[#3d1bdc 1.8GiB/2.0GiB(89%) CN:11 DL:6.8MiB ETA:32s]
+[#3d1bdc 1.8GiB/2.0GiB(89%) CN:11 DL:6.8MiB ETA:31s]
+[#3d1bdc 1.8GiB/2.0GiB(90%) CN:11 DL:6.7MiB ETA:31s]
+[#3d1bdc 1.8GiB/2.0GiB(90%) CN:11 DL:6.7MiB ETA:30s]
+[#3d1bdc 1.8GiB/2.0GiB(90%) CN:11 DL:6.7MiB ETA:29s]
+[#3d1bdc 1.8GiB/2.0GiB(91%) CN:11 DL:6.7MiB ETA:28s]
+[#3d1bdc 1.8GiB/2.0GiB(91%) CN:11 DL:6.7MiB ETA:26s]
+[#3d1bdc 1.8GiB/2.0GiB(91%) CN:11 DL:6.7MiB ETA:25s]
+[#3d1bdc 1.8GiB/2.0GiB(91%) CN:11 DL:6.7MiB ETA:25s]
+[#3d1bdc 1.9GiB/2.0GiB(92%) CN:11 DL:6.5MiB ETA:25s]
+[#3d1bdc 1.9GiB/2.0GiB(92%) CN:11 DL:6.5MiB ETA:24s]
+ *** Download Progress Summary as of Wed Sep 30 23:58:01 2026 *** 
+===============================================================================
+[#3d1bdc 1.9GiB/2.0GiB(92%) CN:11 DL:6.7MiB ETA:22s]
+FILE: ./northward_velocity.tar.xz
+-------------------------------------------------------------------------------
+
+[#3d1bdc 1.9GiB/2.0GiB(92%) CN:11 DL:6.7MiB ETA:22s]
+[#3d1bdc 1.9GiB/2.0GiB(93%) CN:10 DL:6.9MiB ETA:20s]
+[#3d1bdc 1.9GiB/2.0GiB(93%) CN:10 DL:7.0MiB ETA:19s]
+[#3d1bdc 1.9GiB/2.0GiB(94%) CN:9 DL:7.1MiB ETA:17s]
+[#3d1bdc 1.9GiB/2.0GiB(94%) CN:8 DL:7.0MiB ETA:16s]
+[#3d1bdc 1.9GiB/2.0GiB(94%) CN:8 DL:6.9MiB ETA:16s]
+[#3d1bdc 1.9GiB/2.0GiB(94%) CN:8 DL:6.9MiB ETA:15s]
+[#3d1bdc 1.9GiB/2.0GiB(95%) CN:8 DL:7.1MiB ETA:14s]
+[#3d1bdc 1.9GiB/2.0GiB(95%) CN:8 DL:7.2MiB ETA:13s]
+[#3d1bdc 1.9GiB/2.0GiB(95%) CN:8 DL:7.0MiB ETA:12s]
+[#3d1bdc 1.9GiB/2.0GiB(96%) CN:8 DL:6.7MiB ETA:12s]
+[#3d1bdc 1.9GiB/2.0GiB(96%) CN:8 DL:6.4MiB ETA:11s]
+[#3d1bdc 1.9GiB/2.0GiB(96%) CN:8 DL:6.1MiB ETA:11s]
+[#3d1bdc 1.9GiB/2.0GiB(96%) CN:8 DL:5.9MiB ETA:11s]
+[#3d1bdc 2.0GiB/2.0GiB(97%) CN:8 DL:5.9MiB ETA:10s]
+[#3d1bdc 2.0GiB/2.0GiB(97%) CN:7 DL:5.8MiB ETA:9s]
+ *** Download Progress Summary as of Wed Sep 30 23:58:17 2026 *** 
+===============================================================================
+[#3d1bdc 2.0GiB/2.0GiB(97%) CN:7 DL:5.6MiB ETA:8s]
+FILE: ./northward_velocity.tar.xz
+-------------------------------------------------------------------------------
+
+[#3d1bdc 2.0GiB/2.0GiB(97%) CN:7 DL:5.6MiB ETA:8s]
+[#3d1bdc 2.0GiB/2.0GiB(97%) CN:7 DL:5.4MiB ETA:8s]
+[#3d1bdc 2.0GiB/2.0GiB(98%) CN:7 DL:5.3MiB ETA:7s]
+[#3d1bdc 2.0GiB/2.0GiB(98%) CN:7 DL:5.2MiB ETA:6s]
+[#3d1bdc 2.0GiB/2.0GiB(98%) CN:5 DL:5.0MiB ETA:6s]
+[#3d1bdc 2.0GiB/2.0GiB(98%) CN:5 DL:4.8MiB ETA:5s]
+[#3d1bdc 2.0GiB/2.0GiB(98%) CN:4 DL:4.6MiB ETA:5s]
+[#3d1bdc 2.0GiB/2.0GiB(98%) CN:4 DL:4.3MiB ETA:5s]
+[#3d1bdc 2.0GiB/2.0GiB(99%) CN:4 DL:4.1MiB ETA:4s]
+[#3d1bdc 2.0GiB/2.0GiB(99%) CN:3 DL:3.9MiB ETA:3s]
+[#3d1bdc 2.0GiB/2.0GiB(99%) CN:2 DL:3.5MiB ETA:3s]
+[#3d1bdc 2.0GiB/2.0GiB(99%) CN:2 DL:3.0MiB ETA:4s]
+[#3d1bdc 2.0GiB/2.0GiB(99%) CN:2 DL:2.5MiB ETA:5s]
+[#3d1bdc 2.0GiB/2.0GiB(99%) CN:2 DL:2.1MiB ETA:6s]
+[#3d1bdc 2.0GiB/2.0GiB(99%) CN:2 DL:1.8MiB ETA:6s]
+ *** Download Progress Summary as of Wed Sep 30 23:58:32 2026 *** 
+===============================================================================
+[#3d1bdc 2.0GiB/2.0GiB(99%) CN:2 DL:1.5MiB ETA:7s]
+FILE: ./northward_velocity.tar.xz
+-------------------------------------------------------------------------------
+
+[#3d1bdc 2.0GiB/2.0GiB(99%) CN:2 DL:1.5MiB ETA:7s]
+[#3d1bdc 2.0GiB/2.0GiB(99%) CN:2 DL:1.2MiB ETA:8s]
+[#3d1bdc 2.0GiB/2.0GiB(99%) CN:2 DL:1.0MiB ETA:9s]
+[#3d1bdc 2.0GiB/2.0GiB(99%) CN:2 DL:783KiB ETA:10s]
+[#3d1bdc 2.0GiB/2.0GiB(99%) CN:2 DL:826KiB ETA:7s]
+[#3d1bdc 2.0GiB/2.0GiB(99%) CN:1 DL:0.9MiB ETA:4s]
+[#3d1bdc 2.0GiB/2.0GiB(99%) CN:1 DL:1.0MiB ETA:3s]
+[#3d1bdc 2.0GiB/2.0GiB(99%) CN:1 DL:1.1MiB ETA:1s]
+[#3d1bdc 2.0GiB/2.0GiB(99%) CN:1 DL:1.2MiB]
+[#3d1bdc 2.0GiB/2.0GiB(99%) CN:1 DL:1.2MiB]
+
+Download Results:
+gid   |stat|avg speed  |path/URI
+======+====+===========+=======================================================
+3d1bdc|OK  |   8.0MiB/s|./northward_velocity.tar.xz
+
+Status Legend:
+(OK):download completed.
+downloaded 2112 MB in 263s  (8 MB/s)
+sha256 OK
+--- extracting ---
+northward_velocity/m2.nc
+northward_velocity/mks2.nc
+northward_velocity/o1.nc
+northward_velocity/2n2.nc
+northward_velocity/k1.nc
+northward_velocity/q1.nc
+northward_velocity/k2.nc
+northward_velocity/s2.nc
+northward_velocity/n2.nc
+northward_velocity/p1.nc
+northward_velocity/eps2.nc
+tar: *M2.nc: Not found in archive
+tar: *S2.nc: Not found in archive
+tar: *N2.nc: Not found in archive
+tar: *K2.nc: Not found in archive
+tar: *K1.nc: Not found in archive
+tar: *O1.nc: Not found in archive
+tar: *P1.nc: Not found in archive
+tar: *Q1.nc: Not found in archive
+tar: Exiting with failure status due to previous errors
+selective extract returned non-zero, checking what landed
+  placed northward_velocity/s2.nc  (132879586 bytes)
+  placed northward_velocity/p1.nc  (132879586 bytes)
+  placed northward_velocity/o1.nc  (132879586 bytes)
+  placed northward_velocity/k1.nc  (132879586 bytes)
+  placed northward_velocity/q1.nc  (132879586 bytes)
+  placed northward_velocity/m2.nc  (132879586 bytes)
+  placed northward_velocity/k2.nc  (132879586 bytes)
+  placed northward_velocity/n2.nc  (132879586 bytes)
+
+have 16 constituent files
+  fes-data/fes2014/eastward_velocity/k1.nc  132879586 bytes
+  fes-data/fes2014/eastward_velocity/k2.nc  132879586 bytes
+  fes-data/fes2014/eastward_velocity/m2.nc  132879586 bytes
+  fes-data/fes2014/eastward_velocity/n2.nc  132879586 bytes
+  fes-data/fes2014/eastward_velocity/o1.nc  132879586 bytes
+  fes-data/fes2014/eastward_velocity/p1.nc  132879586 bytes
+  fes-data/fes2014/eastward_velocity/q1.nc  132879586 bytes
+  fes-data/fes2014/eastward_velocity/s2.nc  132879586 bytes
+  fes-data/fes2014/northward_velocity/k1.nc  132879586 bytes
+  fes-data/fes2014/northward_velocity/k2.nc  132879586 bytes
+  fes-data/fes2014/northward_velocity/m2.nc  132879586 bytes
+  fes-data/fes2014/northward_velocity/n2.nc  132879586 bytes
+  fes-data/fes2014/northward_velocity/o1.nc  132879586 bytes
+  fes-data/fes2014/northward_velocity/p1.nc  132879586 bytes
+  fes-data/fes2014/northward_velocity/q1.nc  132879586 bytes
+  fes-data/fes2014/northward_velocity/s2.nc  132879586 bytes
