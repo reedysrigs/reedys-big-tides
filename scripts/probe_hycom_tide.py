@@ -97,44 +97,130 @@ def http_get(url, timeout=120):
         return None, "", str(exc)[:200]
 
 
-def discover(log):
-    """Ask each candidate what it offers. Returns bases that look usable."""
-    usable = []
-    log("### Endpoint discovery")
+def _parse_iso(s):
+    s = s.strip().replace("Z", "")
+    for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d"):
+        try:
+            return dt.datetime.strptime(s[:len(fmt) + 2].rstrip("T:"), fmt)
+        except ValueError:
+            continue
+    try:
+        return dt.datetime.fromisoformat(s[:19])
+    except ValueError:
+        return None
+
+
+def catalog_datasets(log):
+    """Enumerate real uv3z grid datasets from the THREDDS catalogs.
+
+    The ESPC-D-V02 paths answer 200 with an EMPTY body, which means the path
+    resolves but is not itself a grid dataset - typically a catalog whose
+    members are split by year. So ask the catalogs what exists instead of
+    guessing URLs.
+    """
+    cats = []
+    for host in _HOSTS:
+        for p in ("ESPC-D-V02/uv3z", "ESPC-D-V02", "GLBy0.08/expt_93.0",
+                  "FMRC_ESPC-D-V02_uv3z"):
+            cats.append("%s/thredds/catalog/%s/catalog.xml" % (host, p))
+    found = []
+    seen = set()
+    log("### Catalog walk")
     log("")
-    log("| endpoint | dataset.xml | note |")
+    log("| catalog | status | urlPaths found |")
     log("|---|---|---|")
-    for base in NCSS_BASES:
-        status, body, err = http_get(base + "/dataset.xml", timeout=60)
-        note = ""
-        if status == 200 and ("<gridDataset" in body or "<capabilities" in body
-                              or "<GridDataset" in body or "gridSet" in body):
-            usable.append(base)
-            note = "grid dataset description returned"
-        elif status == 200:
-            note = "200 but unrecognised body: %r" % body[:80].replace("|", "/")
-        else:
-            note = (err or "status %s" % status).replace("|", "/")
-        log("| `%s` | %s | %s |" % (base.replace("https://", ""),
-                                    status if status else "-", note))
+    for c in cats:
+        status, body, err = http_get(c, timeout=60)
+        paths = []
+        if status == 200:
+            paths = re.findall(r'urlPath="([^"]+)"', body)
+            # also pick up nested catalogRefs one level down
+            for ref in re.findall(r'xlink:href="([^"]+\.xml)"', body)[:12]:
+                sub = urllib.parse.urljoin(c, ref)
+                s2, b2, _ = http_get(sub, timeout=45)
+                if s2 == 200:
+                    paths += re.findall(r'urlPath="([^"]+)"', b2)
+        hits = [p for p in dict.fromkeys(paths) if "uv3z" in p.lower()]
+        log("| `%s` | %s | %d |" % (c.replace("https://", ""),
+                                    status if status else (err or "-")[:20], len(hits)))
+        host = "https://" + urllib.parse.urlparse(c).netloc
+        for p in hits:
+            for pref in ("/thredds/ncss/grid/", "/thredds/ncss/"):
+                u = host + pref + p
+                if u not in seen:
+                    seen.add(u)
+                    found.append(u)
     log("")
-    if usable:
-        # Record the accepted variables and time range of the first usable one,
-        # so a future failure can be diagnosed from this report alone.
-        status, body, _ = http_get(usable[0] + "/dataset.xml", timeout=60)
-        names = sorted(set(re.findall(r'name="(water_[a-z_]+)"', body)))
-        times = re.findall(r'<(?:start|end)>([^<]+)</(?:start|end)>', body)
-        log("First usable endpoint: `%s`" % usable[0])
+    return found
+
+
+def describe(base):
+    """(ok, variables, t_start, t_end) from an NCSS grid dataset description."""
+    status, body, _ = http_get(base + "/dataset.xml", timeout=60)
+    if status != 200 or not body.strip():
+        return False, [], None, None
+    if not any(k in body for k in ("gridDataset", "GridDataset", "gridSet",
+                                   "capabilities")):
+        return False, [], None, None
+    names = sorted(set(re.findall(r'name="(water_[a-z_]+)"', body)))
+    t0 = t1 = None
+    m = re.search(r"<TimeSpan>(.*?)</TimeSpan>", body, re.S)
+    span = m.group(1) if m else body
+    s = re.search(r"<start>([^<]+)</start>", span)
+    e = re.search(r"<end>([^<]+)</end>", span)
+    if s:
+        t0 = _parse_iso(s.group(1))
+    if e:
+        t1 = _parse_iso(e.group(1))
+    return True, names, t0, t1
+
+
+def discover(log):
+    """Find usable endpoints and, for each, the time window we may ask for.
+
+    Returns a list of (base, t_start, t_end), best first: prefers ESPC-D-V02
+    (the product the offshore page actually uses) and the most recent coverage.
+    """
+    candidates = catalog_datasets(log) + NCSS_BASES
+    rows = []
+    log("### Endpoint descriptions")
+    log("")
+    log("| endpoint | usable | water vars | coverage |")
+    log("|---|---|---|---|")
+    for base in dict.fromkeys(candidates):
+        ok, names, t0, t1 = describe(base)
+        have_uv = "water_u" in names and "water_v" in names
+        log("| `%s` | %s | %s | %s |" % (
+            base.replace("https://", ""),
+            "yes" if (ok and have_uv) else "no",
+            len([n for n in names if not n.endswith("_bottom")]) or "-",
+            ("%s .. %s" % (t0.strftime("%Y-%m-%d") if t0 else "?",
+                           t1.strftime("%Y-%m-%d") if t1 else "?"))
+            if (t0 or t1) else "not advertised"))
+        if ok and have_uv and t0 and t1 and (t1 - t0) > dt.timedelta(days=DAYS + 1):
+            rows.append((base, t0, t1))
+    log("")
+    # Prefer the product the page uses, then the most recent coverage.
+    rows.sort(key=lambda r: (0 if "espc" in r[0].lower() else 1, -r[2].timestamp()))
+    if rows:
+        b, t0, t1 = rows[0]
+        log("Chosen: `%s`" % b)
         log("")
-        log("- variables advertised: %s" % (", ".join("`%s`" % n for n in names)
-                                            or "none matched water_*"))
-        if times:
-            log("- time range advertised: %s" % " .. ".join(times[:2]))
+        log("- coverage %s .. %s" % (t0.strftime("%Y-%m-%dT%H:%MZ"),
+                                     t1.strftime("%Y-%m-%dT%H:%MZ")))
+        log("- NOTE: whether a model contains the tide is a property of the model,")
+        log("  so any window it covers answers the question. We take the last")
+        log("  %d days of its coverage rather than insisting on today." % DAYS)
+        if "espc" not in b.lower():
+            log("- WARNING: this is NOT ESPC-D-V02, which is what the offshore page")
+            log("  uses. It is the same HYCOM+NCODA lineage, so the answer is")
+            log("  strongly indicative, but it is not the identical product and")
+            log("  this report must not be read as if it were.")
         log("")
     else:
-        log("No candidate returned a usable grid dataset description.")
+        log("No endpoint advertised both water_u/water_v and enough coverage.")
         log("")
-    return usable
+    return rows
 
 
 def query_variants(lon, lat, t0, t1):
@@ -283,10 +369,21 @@ def main():
     w("fields can be added. If its M2 is the same order as FES's, they cannot.")
     w("")
 
-    bases = discover(w)
-    if not bases:
-        w("Falling back to trying every candidate anyway - dataset.xml may be")
-        w("disabled while the subset service itself still works.")
+    rows = discover(w)
+    if rows:
+        # Use the end of the chosen dataset's own coverage, not "now".
+        bases = [r[0] for r in rows]
+        cov_end = rows[0][2]
+        t1 = min(t1, cov_end)
+        t0 = t1 - dt.timedelta(days=DAYS)
+        if t0 < rows[0][1]:
+            t0 = rows[0][1]
+        w("Window actually requested: %s .. %s" % (
+            t0.strftime("%Y-%m-%dT%H:%MZ"), t1.strftime("%Y-%m-%dT%H:%MZ")))
+        w("")
+    else:
+        w("Falling back to trying every candidate with today's window - the")
+        w("descriptions may be disabled while the subset service still works.")
         w("")
         bases = NCSS_BASES
 
