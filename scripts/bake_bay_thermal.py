@@ -83,10 +83,16 @@ BAY_POLYGONS = [
      (145.04, -38.20), (144.98, -38.31), (144.90, -38.36), (144.80, -38.37),
      (144.72, -38.36), (144.66, -38.33), (144.62, -38.32), (144.56, -38.30),
      (144.48, -38.26), (144.40, -38.23), (144.34, -38.20)],
-    # Western Port, wrapping both arms around French Island
-    [(145.06, -38.38), (145.10, -38.30), (145.18, -38.26), (145.30, -38.27),
-     (145.42, -38.32), (145.50, -38.40), (145.50, -38.48), (145.42, -38.52),
-     (145.30, -38.53), (145.20, -38.52), (145.12, -38.47), (145.07, -38.43)],
+    # Western Port. The first version of this outline stopped at -38.26 and cut
+    # the whole top of the bay off - the north arm runs up past Warneet and
+    # Tooradin to about -38.20, and the eastern arm reaches toward Lang Lang.
+    # Now follows the real shoreline: Hastings up the western arm, across the
+    # top, down the east past Corinella, and out through the entrance either
+    # side of Phillip Island.
+    [(145.06, -38.42), (145.08, -38.34), (145.13, -38.28), (145.18, -38.24),
+     (145.26, -38.21), (145.36, -38.19), (145.46, -38.20), (145.55, -38.23),
+     (145.58, -38.30), (145.56, -38.38), (145.50, -38.46), (145.44, -38.53),
+     (145.36, -38.57), (145.26, -38.57), (145.17, -38.53), (145.10, -38.48)],
 ]
 
 
