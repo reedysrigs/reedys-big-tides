@@ -273,9 +273,32 @@ def main():
     print("grid %d x %d at %.0f m" % (len(lat), len(lon), METRES))
 
     passes = pick_scenes([WEST, SOUTH, EAST, NORTH])
-    day, cloud, group = passes[0]
-    print("latest pass %s, %d scene(s), mean cloud %.1f%%"
-          % (day, len(group), cloud))
+
+    # Newest is NOT best. The first real bake took 2026-09-27 at 23% cloud
+    # because it was 4 days old, over 2026-09-20 at 0.0% cloud seven days
+    # earlier - and the result had holes through half of Port Phillip: the
+    # west-central bay came out 35% covered against 92% in the centre. For a
+    # product whose whole purpose is seeing structure, a clear picture a week
+    # old beats a cloudy one from Tuesday. So: among recent passes, take the
+    # clearest, and only use age to break a tie.
+    FRESH_DAYS = 21
+    today = dt.datetime.utcnow()
+    recent = [p for p in passes
+              if (today - dt.datetime.strptime(p[0], "%Y-%m-%d")).days <= FRESH_DAYS]
+    pool = recent or passes[:3]
+    best = min(pool, key=lambda p: (round(p[1] / 5.0),
+                                    (today - dt.datetime.strptime(p[0], "%Y-%m-%d")).days))
+    day, cloud, group = best
+    if best is not passes[0]:
+        print("picked %s at %.0f%% cloud over the newer %s at %.0f%% - "
+              "a clear picture beats a fresh cloudy one"
+              % (day, cloud, passes[0][0], passes[0][1]))
+    print("pass %s, %d scene(s), mean cloud %.1f%%" % (day, len(group), cloud))
+    # Everything older than the chosen pass is a candidate for the change layer.
+    passes = [p for p in passes
+              if dt.datetime.strptime(p[0], "%Y-%m-%d")
+              < dt.datetime.strptime(day, "%Y-%m-%d")]
+    passes.insert(0, best)
     stack = mosaic(group, lon, lat)
 
     raw_cells = int(np.isfinite(stack).sum())
@@ -288,6 +311,11 @@ def main():
 
     ok = np.isfinite(stack)
     frac = float(ok.mean())
+    _ci = np.where((lon >= 144.45) & (lon <= 145.00))[0]
+    _ri = np.where((lat >= -38.35) & (lat <= -37.87))[0]
+    bay_cov = 100.0 * float(ok[np.ix_(_ri, _ci)].mean()) if len(_ci) and len(_ri) else 0.0
+    print("Port Phillip Bay coverage: %.1f%% (the bay is ~85%% water, so this "
+          "is the number a cloudy pass costs)" % bay_cov)
     print("water coverage of the box: %.1f%% (%d cells)" % (100 * frac, ok.sum()))
     if ok.sum() < 20000:
         print("::error::only %d water cells - cloud or masking took the bays out"
@@ -441,6 +469,10 @@ def main():
         "physical_filter_removed_pct": round(100.0 * n_out / max(1, raw_cells), 3),
         "water_fraction": round(frac, 4),
         "water_cells": int(ok.sum()),
+        # Coverage of the bay itself, which is what a cloudy pass actually
+        # costs. The box includes a lot of land, so water_fraction alone hides
+        # a hole straight through Port Phillip.
+        "bay_coverage_pct": round(bay_cov, 1),
         "skin_temperature": True,
     }
 
