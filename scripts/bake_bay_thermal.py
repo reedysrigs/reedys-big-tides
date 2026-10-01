@@ -281,19 +281,47 @@ def main():
     # product whose whole purpose is seeing structure, a clear picture a week
     # old beats a cloudy one from Tuesday. So: among recent passes, take the
     # clearest, and only use age to break a tie.
-    FRESH_DAYS = 21
+    #
+    # And cloud is not the only thing that leaves holes. Landsat flies fixed
+    # swaths: WRS path 092 covers the eastern side of the bay, 093 the western.
+    # The 0%-cloud pass of 2026-09-20 was path 092, so west-central Port
+    # Phillip came out 29% covered while the centre was 98% - nothing to do
+    # with cloud. So score a pass by how much of the BAY its scene footprints
+    # actually reach, from the STAC geometry, before downloading anything.
+    FRESH_DAYS = 28
     today = dt.datetime.utcnow()
+
+    def footprint_cover(group):
+        """Fraction of the bay box covered by the union of scene bboxes."""
+        gx = np.linspace(144.45, 145.00, 60)
+        gy = np.linspace(-38.35, -37.87, 60)
+        X, Y = np.meshgrid(gx, gy)
+        hit = np.zeros(X.shape, dtype=bool)
+        for it in group:
+            bb = it.bbox or []
+            if len(bb) < 4:
+                continue
+            hit |= ((X >= bb[0]) & (X <= bb[2]) & (Y >= bb[1]) & (Y <= bb[3]))
+        return float(hit.mean())
+
     recent = [p for p in passes
               if (today - dt.datetime.strptime(p[0], "%Y-%m-%d")).days <= FRESH_DAYS]
-    pool = recent or passes[:3]
-    best = min(pool, key=lambda p: (round(p[1] / 5.0),
-                                    (today - dt.datetime.strptime(p[0], "%Y-%m-%d")).days))
-    day, cloud, group = best
-    if best is not passes[0]:
-        print("picked %s at %.0f%% cloud over the newer %s at %.0f%% - "
-              "a clear picture beats a fresh cloudy one"
-              % (day, cloud, passes[0][0], passes[0][1]))
-    print("pass %s, %d scene(s), mean cloud %.1f%%" % (day, len(group), cloud))
+    pool = recent or passes[:4]
+    scored = []
+    for d, c, g in pool:
+        cov = footprint_cover(g)
+        age = (today - dt.datetime.strptime(d, "%Y-%m-%d")).days
+        # coverage first (in 10% bands), then cloud (5% bands), then freshness
+        scored.append(((-round(cov * 10), round(c / 5.0), age), d, c, g, cov))
+    scored.sort(key=lambda r: r[0])
+    _, day, cloud, group, cov = scored[0]
+    best = (day, cloud, group)
+    print("candidate passes (coverage / cloud / age):")
+    for k, d, c, g, cv in scored[:6]:
+        print("   %s  cover %3.0f%%  cloud %3.0f%%  age %2dd%s"
+              % (d, 100 * cv, c, k[2], "   <- chosen" if d == day else ""))
+    print("pass %s, %d scene(s), cloud %.1f%%, footprint cover %.0f%%"
+          % (day, len(group), cloud, 100 * cov))
     # Everything older than the chosen pass is a candidate for the change layer.
     passes = [p for p in passes
               if dt.datetime.strptime(p[0], "%Y-%m-%d")
@@ -473,6 +501,8 @@ def main():
         # costs. The box includes a lot of land, so water_fraction alone hides
         # a hole straight through Port Phillip.
         "bay_coverage_pct": round(bay_cov, 1),
+        "footprint_cover_pct": round(100 * cov, 1),
+        "wrs_paths": sorted({str(g.properties.get("landsat:wrs_path")) for g in group}),
         "skin_temperature": True,
     }
 
