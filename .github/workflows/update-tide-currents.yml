@@ -5,8 +5,15 @@ name: Update tidal currents
 # no script and no step with it, so it cannot break the tide bot.
 
 on:
-  # schedule disabled until the download works - it was failing every few
-  # hours and committing nothing. Re-enable once a run succeeds.
+  # Enabled now that runs 36796317342 (cold, 18m12s) and 36798173041 (warm,
+  # 49s) both succeeded end to end. With the cropped constituents cached a run
+  # is under a minute, so hourly is cheap.
+  #
+  # :05 rather than :00 - the bake stamps the field at the top of the current
+  # hour, and most cron schedules land on the hour, so starting a few minutes
+  # later avoids the queue without making the field any older.
+  schedule:
+    - cron: "5 * * * *"
   workflow_dispatch:
 
 permissions:
