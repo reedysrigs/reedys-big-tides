@@ -1,206 +1,206 @@
-run      36795042835
+run      36796317342
 attempt  1
-when     2026-10-01T00:22:51Z
-outcome  failure
+when     2026-10-01T00:46:02Z
+outcome  success
 
 --- last 200 lines of the fetch ---
--------------------------------------------------------------------------------
-
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
- *** Download Progress Summary as of Thu Oct  1 00:20:38 2026 *** 
+[#dd155d 1.9GiB/2.0GiB(96%) CN:6 DL:2.5MiB ETA:30s]
+[#dd155d 1.9GiB/2.0GiB(96%) CN:6 DL:2.6MiB ETA:29s]
+[#dd155d 1.9GiB/2.0GiB(96%) CN:6 DL:2.4MiB ETA:29s]
+[#dd155d 1.9GiB/2.0GiB(96%) CN:6 DL:2.4MiB ETA:29s]
+[#dd155d 1.9GiB/2.0GiB(96%) CN:6 DL:2.4MiB ETA:28s]
+[#dd155d 1.9GiB/2.0GiB(96%) CN:6 DL:2.3MiB ETA:28s]
+[#dd155d 1.9GiB/2.0GiB(96%) CN:6 DL:2.2MiB ETA:29s]
+[#dd155d 2.0GiB/2.0GiB(96%) CN:6 DL:2.1MiB ETA:29s]
+[#dd155d 2.0GiB/2.0GiB(97%) CN:6 DL:2.2MiB ETA:28s]
+[#dd155d 2.0GiB/2.0GiB(97%) CN:6 DL:2.1MiB ETA:27s]
+[#dd155d 2.0GiB/2.0GiB(97%) CN:6 DL:2.1MiB ETA:26s]
+[#dd155d 2.0GiB/2.0GiB(97%) CN:6 DL:2.1MiB ETA:25s]
+ *** Download Progress Summary as of Thu Oct  1 00:42:10 2026 *** 
 ===============================================================================
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-FILE: ./eastward_velocity.tar.xz
+[#dd155d 2.0GiB/2.0GiB(97%) CN:6 DL:2.2MiB ETA:23s]
+FILE: ./northward_velocity.tar.xz
 -------------------------------------------------------------------------------
 
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
- *** Download Progress Summary as of Thu Oct  1 00:20:53 2026 *** 
+[#dd155d 2.0GiB/2.0GiB(97%) CN:6 DL:2.2MiB ETA:23s]
+[#dd155d 2.0GiB/2.0GiB(97%) CN:5 DL:2.2MiB ETA:22s]
+[#dd155d 2.0GiB/2.0GiB(97%) CN:5 DL:2.1MiB ETA:21s]
+[#dd155d 2.0GiB/2.0GiB(97%) CN:5 DL:2.1MiB ETA:21s]
+[#dd155d 2.0GiB/2.0GiB(97%) CN:5 DL:2.1MiB ETA:20s]
+[#dd155d 2.0GiB/2.0GiB(97%) CN:5 DL:2.1MiB ETA:20s]
+[#dd155d 2.0GiB/2.0GiB(98%) CN:5 DL:2.0MiB ETA:20s]
+[#dd155d 2.0GiB/2.0GiB(98%) CN:4 DL:2.0MiB ETA:19s]
+[#dd155d 2.0GiB/2.0GiB(98%) CN:4 DL:1.9MiB ETA:18s]
+[#dd155d 2.0GiB/2.0GiB(98%) CN:4 DL:1.8MiB ETA:19s]
+[#dd155d 2.0GiB/2.0GiB(98%) CN:4 DL:1.6MiB ETA:21s]
+[#dd155d 2.0GiB/2.0GiB(98%) CN:4 DL:1.4MiB ETA:23s]
+[#dd155d 2.0GiB/2.0GiB(98%) CN:3 DL:1.4MiB ETA:23s]
+[#dd155d 2.0GiB/2.0GiB(98%) CN:3 DL:1.3MiB ETA:24s]
+[#dd155d 2.0GiB/2.0GiB(98%) CN:3 DL:1.2MiB ETA:26s]
+[#dd155d 2.0GiB/2.0GiB(98%) CN:3 DL:1.1MiB ETA:28s]
+[#dd155d 2.0GiB/2.0GiB(98%) CN:3 DL:0.9MiB ETA:31s]
+[#dd155d 2.0GiB/2.0GiB(98%) CN:3 DL:0.9MiB ETA:32s]
+[#dd155d 2.0GiB/2.0GiB(98%) CN:3 DL:883KiB ETA:33s]
+[#dd155d 2.0GiB/2.0GiB(98%) CN:3 DL:902KiB ETA:31s]
+[#dd155d 2.0GiB/2.0GiB(98%) CN:3 DL:0.9MiB ETA:27s]
+[#dd155d 2.0GiB/2.0GiB(98%) CN:3 DL:1.0MiB ETA:24s]
+[#dd155d 2.0GiB/2.0GiB(98%) CN:2 DL:1.0MiB ETA:23s]
+[#dd155d 2.0GiB/2.0GiB(98%) CN:2 DL:1.0MiB ETA:22s]
+[#dd155d 2.0GiB/2.0GiB(98%) CN:1 DL:0.9MiB ETA:23s]
+[#dd155d 2.0GiB/2.0GiB(98%) CN:1 DL:0.9MiB ETA:22s]
+[#dd155d 2.0GiB/2.0GiB(98%) CN:1 DL:0.9MiB ETA:23s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:888KiB ETA:23s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:841KiB ETA:24s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:774KiB ETA:25s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:689KiB ETA:27s]
+ *** Download Progress Summary as of Thu Oct  1 00:42:41 2026 *** 
 ===============================================================================
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-FILE: ./eastward_velocity.tar.xz
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:684KiB ETA:26s]
+FILE: ./northward_velocity.tar.xz
 -------------------------------------------------------------------------------
 
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
- *** Download Progress Summary as of Thu Oct  1 00:21:08 2026 *** 
-===============================================================================
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-FILE: ./eastward_velocity.tar.xz
--------------------------------------------------------------------------------
-
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
- *** Download Progress Summary as of Thu Oct  1 00:21:23 2026 *** 
-===============================================================================
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-FILE: ./eastward_velocity.tar.xz
--------------------------------------------------------------------------------
-
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
- *** Download Progress Summary as of Thu Oct  1 00:21:38 2026 *** 
-===============================================================================
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-FILE: ./eastward_velocity.tar.xz
--------------------------------------------------------------------------------
-
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
- *** Download Progress Summary as of Thu Oct  1 00:21:53 2026 *** 
-===============================================================================
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-FILE: ./eastward_velocity.tar.xz
--------------------------------------------------------------------------------
-
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
- *** Download Progress Summary as of Thu Oct  1 00:22:08 2026 *** 
-===============================================================================
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-FILE: ./eastward_velocity.tar.xz
--------------------------------------------------------------------------------
-
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
- *** Download Progress Summary as of Thu Oct  1 00:22:23 2026 *** 
-===============================================================================
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-FILE: ./eastward_velocity.tar.xz
--------------------------------------------------------------------------------
-
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-[#8c042b 2.0GiB/2.0GiB(99%) CN:1 DL:0B]
-
-10/01 00:22:29 [[1;31mERROR[0m] CUID#23 - Download aborted. URI=https://tds-odatis.aviso.altimetry.fr/thredds/fileServer/dataset-auxiliary-fes-tide-model/fes2014a_currents/eastward_velocity.tar.xz
-Exception: [AbstractCommand.cc:340] errorCode=2 Timeout.
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:684KiB ETA:26s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:689KiB ETA:25s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:738KiB ETA:22s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:751KiB ETA:20s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:782KiB ETA:18s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:806KiB ETA:17s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:825KiB ETA:15s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:845KiB ETA:14s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:867KiB ETA:13s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:869KiB ETA:11s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:872KiB ETA:10s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:845KiB ETA:10s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:819KiB ETA:10s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:786KiB ETA:9s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:756KiB ETA:9s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:720KiB ETA:9s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:678KiB ETA:9s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:652KiB ETA:8s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:616KiB ETA:8s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:573KiB ETA:7s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:535KiB ETA:7s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:552KiB ETA:6s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:579KiB ETA:4s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:603KiB ETA:2s]
+[#dd155d 2.0GiB/2.0GiB(99%) CN:1 DL:632KiB ETA:1s]
 
 Download Results:
 gid   |stat|avg speed  |path/URI
 ======+====+===========+=======================================================
-8c042b|ERR |   3.9MiB/s|./eastward_velocity.tar.xz
+dd155d|OK  |   5.8MiB/s|./northward_velocity.tar.xz
 
 Status Legend:
-(ERR):error occurred.
+(OK):download completed.
+attempt 1: 2112 MB in 363s  (5 MB/s)
+sha256 OK
+--- extracting ---
+  extract OK
+  placed 34 files into fes-data/fes2014/northward_velocity
+--- cropping northward_velocity to the Australian box ---
+  cropped fes-data/fes2014/northward_velocity/2n2.nc                705 x  943   132.9 MB ->  2.80 MB
+  cropped fes-data/fes2014/northward_velocity/eps2.nc               705 x  943   132.9 MB ->  2.80 MB
+  cropped fes-data/fes2014/northward_velocity/j1.nc                 705 x  943   132.9 MB ->  2.82 MB
+  cropped fes-data/fes2014/northward_velocity/k1.nc                 705 x  943   132.9 MB ->  2.88 MB
+  cropped fes-data/fes2014/northward_velocity/k2.nc                 705 x  943   132.9 MB ->  2.82 MB
+  cropped fes-data/fes2014/northward_velocity/l2.nc                 705 x  943   132.9 MB ->  2.81 MB
+  cropped fes-data/fes2014/northward_velocity/la2.nc                705 x  943   132.9 MB ->  2.86 MB
+  cropped fes-data/fes2014/northward_velocity/m2.nc                 705 x  943   132.9 MB ->  2.79 MB
+  cropped fes-data/fes2014/northward_velocity/m3.nc                 705 x  943   132.9 MB ->  2.84 MB
+  cropped fes-data/fes2014/northward_velocity/m4.nc                 705 x  943   132.9 MB ->  2.81 MB
+  cropped fes-data/fes2014/northward_velocity/m6.nc                 705 x  943   132.9 MB ->  2.72 MB
+  cropped fes-data/fes2014/northward_velocity/m8.nc                 705 x  943   132.9 MB ->  2.79 MB
+  cropped fes-data/fes2014/northward_velocity/mf.nc                 705 x  943   132.9 MB ->  3.01 MB
+  cropped fes-data/fes2014/northward_velocity/mks2.nc               705 x  943   132.9 MB ->  2.75 MB
+  cropped fes-data/fes2014/northward_velocity/mm.nc                 705 x  943   132.9 MB ->  3.03 MB
+  cropped fes-data/fes2014/northward_velocity/mn4.nc                705 x  943   132.9 MB ->  2.82 MB
+  cropped fes-data/fes2014/northward_velocity/ms4.nc                705 x  943   132.9 MB ->  2.70 MB
+  cropped fes-data/fes2014/northward_velocity/msf.nc                705 x  943   132.9 MB ->  3.03 MB
+  cropped fes-data/fes2014/northward_velocity/msqm.nc               705 x  943   132.9 MB ->  2.96 MB
+  cropped fes-data/fes2014/northward_velocity/mtm.nc                705 x  943   132.9 MB ->  2.99 MB
+  cropped fes-data/fes2014/northward_velocity/mu2.nc                705 x  943   132.9 MB ->  2.79 MB
+  cropped fes-data/fes2014/northward_velocity/n2.nc                 705 x  943   132.9 MB ->  2.79 MB
+  cropped fes-data/fes2014/northward_velocity/n4.nc                 705 x  943   132.9 MB ->  2.72 MB
+  cropped fes-data/fes2014/northward_velocity/nu2.nc                705 x  943   132.9 MB ->  2.80 MB
+  cropped fes-data/fes2014/northward_velocity/o1.nc                 705 x  943   132.9 MB ->  2.87 MB
+  cropped fes-data/fes2014/northward_velocity/p1.nc                 705 x  943   132.9 MB ->  2.89 MB
+  cropped fes-data/fes2014/northward_velocity/q1.nc                 705 x  943   132.9 MB ->  2.86 MB
+  cropped fes-data/fes2014/northward_velocity/r2.nc                 705 x  943   132.9 MB ->  2.72 MB
+  cropped fes-data/fes2014/northward_velocity/s1.nc                 705 x  943   132.9 MB ->  2.73 MB
+  cropped fes-data/fes2014/northward_velocity/s2.nc                 705 x  943   132.9 MB ->  2.82 MB
+  cropped fes-data/fes2014/northward_velocity/s4.nc                 705 x  943   132.9 MB ->  2.68 MB
+  cropped fes-data/fes2014/northward_velocity/sa.nc                 705 x  943   132.9 MB ->  2.96 MB
+  cropped fes-data/fes2014/northward_velocity/ssa.nc                705 x  943   132.9 MB ->  3.01 MB
+  cropped fes-data/fes2014/northward_velocity/t2.nc                 705 x  943   132.9 MB ->  2.69 MB
+  total 4.52 GB -> 0.10 GB  (2.1%)
+  northward_velocity: 34 constituents, 92M after cropping
 
-aria2 will resume download if the transfer is restarted.
-If there are any errors, then see the log file. See '-l' option in help/man page for details.
-aria2c failed, trying curl
-** Resuming transfer from byte position 2210806936
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:05 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:06 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:07 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:08 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:09 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:10 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:11 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:12 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:13 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:14 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:15 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:16 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:17 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:18 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:19 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:19 --:--:--     0
-downloaded 2108 MB in 555s  (3 MB/s)
-::error::sha256 mismatch for eastward_velocity.tar.xz
-  published b3840ed0bbc49f88db0d682f4e07a7fe5537d62b9c1d1efdeeebba3fca45be16
-  got       917396c0d52cce790f0bddbb13a0bba0249e7375b1aa22ada2d34cb9bfb933a8
+have 68 constituent files, total 183M
+  fes-data/fes2014/eastward_velocity/2n2.nc  2755145 bytes
+  fes-data/fes2014/eastward_velocity/eps2.nc  2785632 bytes
+  fes-data/fes2014/eastward_velocity/j1.nc  2760575 bytes
+  fes-data/fes2014/eastward_velocity/k1.nc  2767160 bytes
+  fes-data/fes2014/eastward_velocity/k2.nc  2782632 bytes
+  fes-data/fes2014/eastward_velocity/l2.nc  2815779 bytes
+  fes-data/fes2014/eastward_velocity/la2.nc  2794937 bytes
+  fes-data/fes2014/eastward_velocity/m2.nc  2766616 bytes
+  fes-data/fes2014/eastward_velocity/m3.nc  2756061 bytes
+  fes-data/fes2014/eastward_velocity/m4.nc  2804076 bytes
+  fes-data/fes2014/eastward_velocity/m6.nc  2768917 bytes
+  fes-data/fes2014/eastward_velocity/m8.nc  2797848 bytes
+  fes-data/fes2014/eastward_velocity/mf.nc  2911517 bytes
+  fes-data/fes2014/eastward_velocity/mks2.nc  2708728 bytes
+  fes-data/fes2014/eastward_velocity/mm.nc  2941110 bytes
+  fes-data/fes2014/eastward_velocity/mn4.nc  2760564 bytes
+  fes-data/fes2014/eastward_velocity/ms4.nc  2784658 bytes
+  fes-data/fes2014/eastward_velocity/msf.nc  2964667 bytes
+  fes-data/fes2014/eastward_velocity/msqm.nc  2867548 bytes
+  fes-data/fes2014/eastward_velocity/mtm.nc  2867662 bytes
+  fes-data/fes2014/eastward_velocity/mu2.nc  2764434 bytes
+  fes-data/fes2014/eastward_velocity/n2.nc  2766038 bytes
+  fes-data/fes2014/eastward_velocity/n4.nc  2698946 bytes
+  fes-data/fes2014/eastward_velocity/nu2.nc  2765802 bytes
+  fes-data/fes2014/eastward_velocity/o1.nc  2780379 bytes
+  fes-data/fes2014/eastward_velocity/p1.nc  2771505 bytes
+  fes-data/fes2014/eastward_velocity/q1.nc  2783186 bytes
+  fes-data/fes2014/eastward_velocity/r2.nc  2709272 bytes
+  fes-data/fes2014/eastward_velocity/s1.nc  2843295 bytes
+  fes-data/fes2014/eastward_velocity/s2.nc  2784590 bytes
+  fes-data/fes2014/eastward_velocity/s4.nc  2686781 bytes
+  fes-data/fes2014/eastward_velocity/sa.nc  2931217 bytes
+  fes-data/fes2014/eastward_velocity/ssa.nc  2933391 bytes
+  fes-data/fes2014/eastward_velocity/t2.nc  2686255 bytes
+  fes-data/fes2014/northward_velocity/2n2.nc  2796512 bytes
+  fes-data/fes2014/northward_velocity/eps2.nc  2795470 bytes
+  fes-data/fes2014/northward_velocity/j1.nc  2816143 bytes
+  fes-data/fes2014/northward_velocity/k1.nc  2883726 bytes
+  fes-data/fes2014/northward_velocity/k2.nc  2821769 bytes
+  fes-data/fes2014/northward_velocity/l2.nc  2811871 bytes
+  fes-data/fes2014/northward_velocity/la2.nc  2856106 bytes
+  fes-data/fes2014/northward_velocity/m2.nc  2792368 bytes
+  fes-data/fes2014/northward_velocity/m3.nc  2839777 bytes
+  fes-data/fes2014/northward_velocity/m4.nc  2807432 bytes
+  fes-data/fes2014/northward_velocity/m6.nc  2717790 bytes
+  fes-data/fes2014/northward_velocity/m8.nc  2793635 bytes
+  fes-data/fes2014/northward_velocity/mf.nc  3005561 bytes
+  fes-data/fes2014/northward_velocity/mks2.nc  2754424 bytes
+  fes-data/fes2014/northward_velocity/mm.nc  3030664 bytes
+  fes-data/fes2014/northward_velocity/mn4.nc  2820888 bytes
+  fes-data/fes2014/northward_velocity/ms4.nc  2704193 bytes
+  fes-data/fes2014/northward_velocity/msf.nc  3028173 bytes
+  fes-data/fes2014/northward_velocity/msqm.nc  2964059 bytes
+  fes-data/fes2014/northward_velocity/mtm.nc  2990432 bytes
+  fes-data/fes2014/northward_velocity/mu2.nc  2786237 bytes
+  fes-data/fes2014/northward_velocity/n2.nc  2786131 bytes
+  fes-data/fes2014/northward_velocity/n4.nc  2718296 bytes
+  fes-data/fes2014/northward_velocity/nu2.nc  2798538 bytes
+  fes-data/fes2014/northward_velocity/o1.nc  2868039 bytes
+  fes-data/fes2014/northward_velocity/p1.nc  2890031 bytes
+  fes-data/fes2014/northward_velocity/q1.nc  2859073 bytes
+  fes-data/fes2014/northward_velocity/r2.nc  2722714 bytes
+  fes-data/fes2014/northward_velocity/s1.nc  2727343 bytes
+  fes-data/fes2014/northward_velocity/s2.nc  2816109 bytes
+  fes-data/fes2014/northward_velocity/s4.nc  2679852 bytes
+  fes-data/fes2014/northward_velocity/sa.nc  2961930 bytes
+  fes-data/fes2014/northward_velocity/ssa.nc  3011480 bytes
+  fes-data/fes2014/northward_velocity/t2.nc  2690746 bytes
