@@ -1,0 +1,84 @@
+name: Update bay thermal
+
+# 100 m water temperature, fronts, and change-since-last-pass for Port Phillip
+# Bay and Western Port, from Landsat 8/9 thermal imagery.
+#
+# INSHORE ONLY. This writes docs/bay-sst.* and nothing else. It does not touch
+# the offshore map, its data, or its page - that is a separate product and is
+# deliberately left alone.
+#
+# Landsat passes about every 7 days (median measured over 180 days) and cloud
+# takes some of those, so this runs daily only to notice a new pass promptly -
+# it is not a daily product and the JSON records the scene date and age so the
+# page can say so plainly.
+
+on:
+  schedule:
+    - cron: "41 20 * * *"      # ~06:41 Melbourne, after the ~10am local pass is processed
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bay-thermal
+  cancel-in-progress: false
+
+jobs:
+  bake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install --quiet numpy pillow rasterio pystac-client planetary-computer
+
+      - name: Bake
+        run: python scripts/bake_bay_thermal.py
+
+      - name: Commit and push
+        if: success()
+        run: |
+          git config user.name  "bay-thermal-bot"
+          git config user.email "bay-thermal-bot@users.noreply.github.com"
+          git add docs/bay-sst.png docs/bay-sst.json 2>/dev/null || true
+          git add docs/bay-sst-delta.png docs/bay-sst-delta.json 2>/dev/null || true
+          git diff --cached --quiet && { echo "no new pass - nothing changed"; exit 0; }
+          git commit -m "Update bay thermal"
+          for i in 1 2 3; do
+            git pull --rebase --autostash && git push && exit 0
+            echo "push failed, retrying ($i)"; sleep 5
+          done
+          exit 1
+
+      # Same lesson as the tide field: committing a file is not the same as the
+      # page being able to fetch it.
+      - name: Verify the published URL
+        if: success()
+        run: |
+          sleep 45
+          base="https://reedysrigs.github.io/reedys-big-tides/docs"
+          out=docs/_bay_sst_published.txt
+          {
+            echo "checked $(date -u +%Y-%m-%dT%H:%M:%SZ)  run ${{ github.run_id }}"
+            for f in bay-sst.json bay-sst.png bay-sst-delta.json bay-sst-delta.png; do
+              code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$base/$f" || echo 000)
+              size=$(curl -s -o /dev/null -w '%{size_download}' --max-time 90 "$base/$f" || echo 0)
+              printf '  %-22s %s  %s bytes\n' "$f" "$code" "$size"
+            done
+          } | tee "$out"
+          git add "$out"
+          git diff --cached --quiet || {
+            git commit -m "bay-sst publish check"
+            for i in 1 2 3; do
+              git pull --rebase --autostash && git push && break
+              sleep 5
+            done
+          }
