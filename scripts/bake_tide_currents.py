@@ -8,9 +8,28 @@ Licence: FES2014 is delivered for all purposes including commercial, with
 attribution.  See AVISO FES licence.
 
 Why this exists: the existing current-uv field is HYCOM, ~13.9 km cells at
-Bass Strait latitudes, with a third of the box masked as land/no-data.  It
-cannot represent tide-driven coastal flow.  FES2014 is 1/16 degree and has
-values right into the coast.
+Bass Strait latitudes.  FES2014 is 1/16 degree - about 5.4 km of longitude at
+-38.5, so roughly 2.6x finer linearly and 6.6x finer by area.
+
+What it does NOT do, measured on the first real bake rather than assumed:
+
+  - It does not resolve Port Phillip Heads.  The Rip is 3.2 km across and the
+    cell containing it has no data at all; the nearest cell with data is 4.4 km
+    away.  The BoM tidal stream table (scripts/parse_bom_rip.py) remains the
+    only usable source there, and being observation-derived it is better than
+    any model would be.
+  - It does not resolve the Western Port entrance either - nearest data 8.8 km
+    away - and BoM publishes no stream table for Western Port.  Tidal current
+    inside Western Port is therefore still unsolved; do not pretend otherwise.
+  - An earlier version of this comment claimed FES "has values right into the
+    coast".  That was wrong and is corrected here.  Coverage over the box is
+    66.9%, which is close to HYCOM's 67.3% - the masked third is mostly the
+    continent, in both models.  The gain is resolution, not reach.
+
+Where it is genuinely good is open water: 10 of 10 offshore test points from
+the Portland canyons to the Tasman carry data, and the model independently puts
+Australia's fastest tidal water at the Horizontal Falls (6.06 kn), Broad Sound
+and Arnhem Land - the three largest tidal-range areas in the country.
 
 The PNG encoding, which MUST match the shader in the offshore page:
     R = (u / u_range + 1) / 2 * 255      eastward,  m/s
