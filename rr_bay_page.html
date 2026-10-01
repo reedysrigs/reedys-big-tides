@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bay Water Temperature &mdash; Port Phillip &amp; Western Port | Reedy's Rigs</title>
+<meta name="description" content="100 m water temperature, fronts and weekly change for Port Phillip Bay and Western Port, from Landsat thermal imagery.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#0b0d0c; --panel:#151917; --panel-2:#1e2422; --line:#2c3431;
+  --ink:#e8eeea; --ink-dim:#8b9a93; --amber:#f0a92b; --warm:#e2563f; --ok:#5fbf8f;
+  color-scheme:dark;
+  --f-display:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--ground);color:var(--ink);font-family:var(--f-display);
+     overflow:hidden;-webkit-text-size-adjust:100%}
+#wrap{position:fixed;inset:0;display:flex;flex-direction:column}
+header{flex:0 0 auto;background:var(--panel);border-bottom:1px solid var(--line);
+       padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top,0px));
+       display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 14px}
+h1{font-size:15px;font-weight:700;margin:0;text-wrap:balance}
+.sub{font-family:var(--f-data);font-size:11px;color:var(--ink-dim)}
+.sub b{color:var(--amber);font-weight:500}
+.sub .stale{color:var(--warm)}
+#bar{flex:0 0 auto;background:var(--panel);border-bottom:1px solid var(--line);
+     padding:8px 16px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+button.tab{font-family:var(--f-display);font-size:12px;font-weight:600;
+  background:var(--panel-2);color:var(--ink-dim);border:1px solid var(--line);
+  border-radius:3px;padding:7px 11px;cursor:pointer}
+button.tab:hover{color:var(--ink)}
+button.tab[aria-pressed="true"]{background:var(--amber);color:#17120a;border-color:var(--amber)}
+button.tab[disabled]{opacity:.4;cursor:default}
+button.tab:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.spacer{flex:1 1 auto;min-width:0}
+.hint{font-family:var(--f-data);font-size:10.5px;color:var(--ink-dim);white-space:nowrap}
+#stage{flex:1 1 auto;position:relative;min-height:0;overflow:hidden;touch-action:none;cursor:crosshair}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.card{position:absolute;background:rgba(21,25,23,.93);border:1px solid var(--line);
+      border-radius:4px;padding:10px 12px;backdrop-filter:blur(6px);pointer-events:none}
+#readout{left:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));min-width:190px}
+#legend{right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));width:168px}
+.k{font-family:var(--f-data);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;
+   color:var(--ink-dim);margin:0 0 3px}
+.v{font-family:var(--f-data);font-size:19px;font-weight:500;line-height:1.15;
+   font-variant-numeric:tabular-nums;margin:0 0 7px}
+.v small{font-size:11px;color:var(--ink-dim);font-weight:400}
+.row{display:flex;justify-content:space-between;gap:10px;font-family:var(--f-data);
+     font-size:11px;font-variant-numeric:tabular-nums;margin-top:3px}
+.row span:first-child{color:var(--ink-dim)}
+#ramp{height:9px;border-radius:2px;margin:5px 0 4px}
+.ends{display:flex;justify-content:space-between;font-family:var(--f-data);font-size:10px;color:var(--ink-dim)}
+.note{font-family:var(--f-data);font-size:10px;color:var(--ink-dim);line-height:1.45;margin-top:7px}
+#msg{position:absolute;inset:0;display:grid;place-items:center;padding:28px;text-align:center}
+#msg div{max-width:430px}
+#msg p{font-family:var(--f-data);font-size:12.5px;line-height:1.6;color:var(--ink-dim);margin:0 0 8px}
+#msg .big{font-family:var(--f-display);font-size:15px;font-weight:600;color:var(--ink);margin-bottom:10px}
+@media (max-width:620px){#legend{display:none}h1{font-size:14px}.hint{display:none}}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <header>
+    <h1>Port Phillip Bay &amp; Western Port &mdash; water temperature</h1>
+    <span class="sub" id="hMeta">loading&hellip;</span>
+  </header>
+  <div id="bar">
+    <button class="tab" id="tTemp"   type="button" aria-pressed="true">Temperature</button>
+    <button class="tab" id="tFront"  type="button" aria-pressed="false">Fronts</button>
+    <button class="tab" id="tChange" type="button" aria-pressed="false">Change</button>
+    <button class="tab" id="tCoarse" type="button" aria-pressed="false">Compare 2&nbsp;km</button>
+    <span class="spacer"></span>
+    <span class="hint">drag to pan &middot; scroll to zoom &middot; tap to read</span>
+  </div>
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div class="card" id="readout" hidden>
+      <p class="k" id="rLabel">Water temperature</p>
+      <p class="v" id="rValue">&mdash;</p>
+      <div class="row"><span>Front</span><span id="rGrad">&mdash;</span></div>
+      <div class="row"><span>Change</span><span id="rDelta">&mdash;</span></div>
+      <div class="row"><span>Position</span><span id="rPos">&mdash;</span></div>
+    </div>
+    <div class="card" id="legend" hidden>
+      <p class="k" id="lTitle">Degrees C</p>
+      <div id="ramp"></div>
+      <div class="ends"><span id="lLo">&mdash;</span><span id="lHi">&mdash;</span></div>
+      <p class="note" id="lNote"></p>
+    </div>
+    <div id="msg"><div><p class="big">Loading the latest satellite pass</p>
+      <p>Pulling about 2&nbsp;MB of thermal imagery. First load takes a few seconds.</p></div></div>
+  </div>
+</div>
+<script>
+var RR_BAY_BUILD="bay-1-rc";
+(function(){
+"use strict";
+var BASE="https://reedysrigs.github.io/reedys-big-tides/docs";
+
+var PLACES=[
+ {n:"The Rip",lon:144.617,lat:-38.295,mark:true},
+ {n:"Queenscliff",lon:144.662,lat:-38.267},
+ {n:"Sorrento",lon:144.743,lat:-38.336},
+ {n:"Geelong",lon:144.360,lat:-38.141},
+ {n:"Mornington",lon:145.038,lat:-38.223},
+ {n:"Hastings",lon:145.187,lat:-38.302},
+ {n:"Melbourne",lon:144.963,lat:-37.814}];
+
+function ramp(stops){return function(t){
+  t=Math.max(0,Math.min(1,t));
+  for(var i=0;i<stops.length-1;i++){var a=stops[i],b=stops[i+1];
+    if(t>=a[0]&&t<=b[0]){var u=(b[0]-a[0])?(t-a[0])/(b[0]-a[0]):0;
+      return [a[1]+(b[1]-a[1])*u,a[2]+(b[2]-a[2])*u,a[3]+(b[3]-a[3])*u];}}
+  var l=stops[stops.length-1];return [l[1],l[2],l[3]];};}
+var rTemp=ramp([[0,24,54,110],[.22,30,128,170],[.45,86,176,128],[.66,224,196,88],[.85,228,120,52],[1,196,48,52]]);
+var rFront=ramp([[0,10,13,12],[.35,96,58,14],[.7,240,169,43],[1,255,246,228]]);
+var rDelta=ramp([[0,46,110,168],[.42,28,34,32],[.5,36,42,40],[.58,28,34,32],[1,206,74,52]]);
+
+var META=null,DMETA=null,W=0,H=0,B=null;
+var temp=null,grad=null,mask=null,dchg=null,dmask=null;
+var layers={},view={s:1,x:0,y:0},mode="temp",coarse=false,ready=false;
+var cv=document.getElementById("cv"),ctx=cv.getContext("2d"),stage=document.getElementById("stage");
+var $=function(id){return document.getElementById(id)};
+
+function say(title,body){
+  var m=$("msg");m.hidden=false;
+  m.innerHTML='<div><p class="big"></p><p></p></div>';
+  m.querySelector(".big").textContent=title;
+  m.querySelectorAll("p")[1].textContent=body;
+}
+function offscreen(w,h){var c=document.createElement("canvas");c.width=w;c.height=h;return c;}
+function buildLayer(fn,w,h){
+  var c=offscreen(w,h),x=c.getContext("2d"),im=x.createImageData(w,h),d=im.data,i,p;
+  for(i=0;i<w*h;i++){p=fn(i);d[i*4]=p[0];d[i*4+1]=p[1];d[i*4+2]=p[2];d[i*4+3]=p[3];}
+  x.putImageData(im,0,0);return c;}
+function decodePng(img,meta,isDelta){
+  var c=offscreen(meta.width,meta.height),x=c.getContext("2d",{willReadFrequently:true});
+  x.drawImage(img,0,0);
+  var px=x.getImageData(0,0,meta.width,meta.height).data,n=meta.width*meta.height;
+  var val=new Float32Array(n),msk=new Uint8Array(n),grd=isDelta?null:new Float32Array(n),i,o,q;
+  for(i=0;i<n;i++){o=i*4;msk[i]=px[o+3]>=128?1:0;q=(px[o]*256+px[o+1])/65535;
+    if(isDelta)val[i]=(q*2-1)*meta.d_max_c;
+    else{val[i]=meta.t_min+q*(meta.t_max-meta.t_min);grd[i]=px[o+2]/255*meta.grad_max_c_per_km;}}
+  return {val:val,msk:msk,grd:grd};}
+
+function build(){
+  var lo=META.display_lo_c,hi=META.display_hi_c,span=(hi-lo)||1;
+  layers.temp=buildLayer(function(i){if(!mask[i])return [0,0,0,0];
+    var c=rTemp((temp[i]-lo)/span);return [c[0],c[1],c[2],255];},W,H);
+  var gmax=Math.max(.15,META.grad_max_c_per_km*0.55);
+  layers.frontMax=gmax;
+  layers.front=buildLayer(function(i){if(!mask[i])return [0,0,0,0];
+    var c=rFront(grad[i]/gmax);return [c[0],c[1],c[2],255];},W,H);
+  if(dchg){var dm=DMETA.d_max_c*0.5;layers.changeMax=dm;
+    layers.change=buildLayer(function(i){if(!dmask[i])return [0,0,0,0];
+      var c=rDelta((dchg[i]/dm+1)/2);return [c[0],c[1],c[2],255];},W,H);}
+  var f=20,cw=Math.floor(W/f),ch=Math.floor(H/f);
+  var bt=new Float32Array(cw*ch),bn=new Float32Array(cw*ch),x,y,i,j;
+  for(y=0;y<ch*f;y++)for(x=0;x<cw*f;x++){i=y*W+x;if(!mask[i])continue;
+    j=Math.floor(y/f)*cw+Math.floor(x/f);bt[j]+=temp[i];bn[j]++;}
+  layers.coarse=buildLayer(function(i){if(bn[i]<f*f*0.25)return [0,0,0,0];
+    var c=rTemp((bt[i]/bn[i]-lo)/span);return [c[0],c[1],c[2],255];},cw,ch);}
+
+function fit(){
+  if(!ready)return;
+  var r=stage.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=Math.round(r.width*dpr);cv.height=Math.round(r.height*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  var s=Math.min(r.width/W,r.height/H)*0.94;
+  view={s:s,x:(r.width-W*s)/2,y:(r.height-H*s)/2};draw();}
+function draw(){
+  if(!ready)return;
+  var r=stage.getBoundingClientRect();
+  ctx.clearRect(0,0,r.width,r.height);
+  ctx.fillStyle="#0b0d0c";ctx.fillRect(0,0,r.width,r.height);
+  var src=coarse?layers.coarse:(mode==="front"?layers.front:(mode==="change"&&layers.change?layers.change:layers.temp));
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(src,view.x,view.y,W*view.s,H*view.s);
+  ctx.font="500 10px 'IBM Plex Mono',monospace";ctx.textBaseline="middle";
+  for(var i=0;i<PLACES.length;i++){var p=PLACES[i];
+    var px=view.x+((p.lon-B.west)/(B.east-B.west))*W*view.s;
+    var py=view.y+((B.north-p.lat)/(B.north-B.south))*H*view.s;
+    if(px<-40||py<-20||px>r.width+40||py>r.height+20)continue;
+    if(p.mark){ctx.strokeStyle="#f0a92b";ctx.lineWidth=1.4;
+      ctx.beginPath();ctx.arc(px,py,6,0,Math.PI*2);ctx.stroke();ctx.fillStyle="#f0a92b";}
+    else{ctx.fillStyle="rgba(232,238,234,.62)";ctx.fillRect(px-1.2,py-1.2,2.4,2.4);}
+    ctx.fillText(p.n,px+9,py);}}
+function cellAt(cx,cy){
+  var gx=Math.floor((cx-view.x)/view.s),gy=Math.floor((cy-view.y)/view.s);
+  if(gx<0||gy<0||gx>=W||gy>=H)return null;
+  return {i:gy*W+gx,lon:B.west+(gx/(W-1))*(B.east-B.west),lat:B.north-(gy/(H-1))*(B.north-B.south)};}
+function dm(v,isLat){var h=isLat?(v<0?"S":"N"):(v<0?"W":"E"),a=Math.abs(v);
+  var d=Math.floor(a),m=(a-d)*60;return d+"°"+m.toFixed(3)+"' "+h;}
+function readAt(cx,cy){
+  if(!ready)return;
+  var c=cellAt(cx,cy),L=$("rLabel"),V=$("rValue"),G=$("rGrad"),D=$("rDelta"),P=$("rPos");
+  var title=mode==="change"?"Change since last pass":(mode==="front"?"Front strength":"Water temperature");
+  L.textContent=title;
+  if(!c||!mask[c.i]){V.innerHTML="<small>no water data here</small>";G.textContent="—";
+    D.textContent="—";P.textContent=c?(dm(c.lat,true)+"  "+dm(c.lon,false)):"—";return;}
+  if(mode==="change"&&dchg){var d=dmask[c.i]?dchg[c.i]:null;
+    V.innerHTML=d===null?"<small>not in both passes</small>"
+      :((d>=0?"+":"")+d.toFixed(2)+"<small> &deg;C in "+DMETA.days+" days</small>");}
+  else if(mode==="front"){V.innerHTML=grad[c.i].toFixed(2)+"<small> &deg;C / km</small>";}
+  else{V.innerHTML=temp[c.i].toFixed(2)+"<small> &deg;C</small>";}
+  G.textContent=grad[c.i].toFixed(2)+" °C/km";
+  D.textContent=(dchg&&dmask[c.i])?((dchg[c.i]>=0?"+":"")+dchg[c.i].toFixed(2)+" °C"):"—";
+  P.textContent=dm(c.lat,true)+"  "+dm(c.lon,false);}
+function legend(){
+  if(!ready)return;
+  var t=$("lTitle"),r=$("ramp"),lo=$("lLo"),hi=$("lHi"),nt=$("lNote");
+  function g8(fn){var s=[];for(var i=0;i<=8;i++){var c=fn(i/8);
+    s.push("rgb("+(c[0]|0)+","+(c[1]|0)+","+(c[2]|0)+") "+(i/8*100).toFixed(0)+"%");}
+    return "linear-gradient(90deg,"+s.join(",")+")";}
+  if(mode==="change"&&dchg){t.textContent="Change, °C";r.style.background=g8(rDelta);
+    lo.textContent="-"+layers.changeMax.toFixed(1);hi.textContent="+"+layers.changeMax.toFixed(1);
+    nt.textContent=DMETA.from_date+" to "+DMETA.to_date+". "+DMETA.warmed_pct+"% of the bay warmed, "+DMETA.cooled_pct+"% cooled.";}
+  else if(mode==="front"){t.textContent="Front strength, °C/km";r.style.background=g8(rFront);
+    lo.textContent="0";hi.textContent=layers.frontMax.toFixed(1);
+    nt.textContent="Bright is where temperature changes fastest. Median across the bay is "+(META.grad_median_c_per_km||0).toFixed(2)+" °C/km.";}
+  else{t.textContent="Water temperature, °C";r.style.background=g8(rTemp);
+    lo.textContent=META.display_lo_c.toFixed(1);hi.textContent=META.display_hi_c.toFixed(1);
+    nt.textContent=coarse?"Averaged to 2 km, what a satellite SST map can resolve."
+      :("Median "+META.median_c.toFixed(2)+" °C. Half the bay sits within "+META.iqr_c.toFixed(2)+" °C of it.");}}
+function setMode(m){
+  mode=m;
+  var map={tTemp:"temp",tFront:"front",tChange:"change"},k;
+  for(k in map)if(map.hasOwnProperty(k))$(k).setAttribute("aria-pressed",String(map[k]===m&&!coarse));
+  if(coarse){coarse=false;$("tCoarse").setAttribute("aria-pressed","false");}
+  draw();legend();}
+$("tTemp").onclick=function(){setMode("temp")};
+$("tFront").onclick=function(){setMode("front")};
+$("tChange").onclick=function(){if(dchg)setMode("change")};
+$("tCoarse").onclick=function(){
+  coarse=!coarse;mode="temp";
+  $("tCoarse").setAttribute("aria-pressed",String(coarse));
+  $("tTemp").setAttribute("aria-pressed",String(!coarse));
+  $("tFront").setAttribute("aria-pressed","false");
+  $("tChange").setAttribute("aria-pressed","false");
+  draw();legend();};
+
+var drag=null;
+stage.addEventListener("pointerdown",function(e){
+  try{stage.setPointerCapture(e.pointerId)}catch(_e){}
+  drag={x:e.clientX,y:e.clientY,vx:view.x,vy:view.y,moved:false};});
+stage.addEventListener("pointermove",function(e){
+  var r=stage.getBoundingClientRect();
+  if(drag&&e.buttons){var dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+    if(Math.abs(dx)+Math.abs(dy)>3)drag.moved=true;
+    view.x=drag.vx+dx;view.y=drag.vy+dy;draw();}
+  else readAt(e.clientX-r.left,e.clientY-r.top);});
+stage.addEventListener("pointerup",function(e){
+  var r=stage.getBoundingClientRect();
+  if(drag&&!drag.moved)readAt(e.clientX-r.left,e.clientY-r.top);
+  drag=null;});
+stage.addEventListener("wheel",function(e){
+  if(!ready)return;
+  e.preventDefault();
+  var r=stage.getBoundingClientRect(),cx=e.clientX-r.left,cy=e.clientY-r.top;
+  var k=Math.exp(-e.deltaY*0.0016),ns=Math.max(0.15,Math.min(40,view.s*k)),f=ns/view.s;
+  view.x=cx-(cx-view.x)*f;view.y=cy-(cy-view.y)*f;view.s=ns;draw();},{passive:false});
+window.addEventListener("resize",fit);
+
+function getJSON(url){
+  return fetch(url,{cache:"no-store"}).then(function(r){
+    if(!r.ok)throw new Error(url.split("/").pop()+" returned "+r.status);
+    return r.json();});}
+function getImg(url){
+  return new Promise(function(res,rej){
+    var im=new Image();im.crossOrigin="anonymous";
+    im.onload=function(){res(im)};
+    im.onerror=function(){rej(new Error(url.split("/").pop()+" would not load"))};
+    im.src=url;});}
+
+function header(){
+  var age=META.age_days,stale=age>24;
+  $("hMeta").innerHTML="Landsat <b>"+META.scene_date+"</b> &middot; <b"+(stale?' class="stale"':"")+">"+
+    (age===0?"today":age===1?"1 day old":age+" days old")+"</b> &middot; <b>"+
+    META.cloud_cover_pct+"%</b> cloud &middot; <b>100 m</b> &middot; not live, one pass";}
+
+var loadedScene=null;
+function load(first){
+  var bust="?v="+Date.now();
+  return getJSON(BASE+"/bay-sst.json"+bust).then(function(m){
+    if(!first&&m.scene_date===loadedScene)return null;   // nothing new
+    META=m;W=m.width;H=m.height;B=m.bounds;loadedScene=m.scene_date;
+    return Promise.all([
+      getImg(BASE+"/bay-sst.png"+bust),
+      getJSON(BASE+"/bay-sst-delta.json"+bust).catch(function(){return null}),
+      getImg(BASE+"/bay-sst-delta.png"+bust).catch(function(){return null})
+    ]).then(function(a){
+      var t=decodePng(a[0],META,false);temp=t.val;mask=t.msk;grad=t.grd;
+      if(a[1]&&a[2]){DMETA=a[1];var d=decodePng(a[2],DMETA,true);dchg=d.val;dmask=d.msk;
+        $("tChange").disabled=false;}
+      else{DMETA=null;dchg=null;dmask=null;$("tChange").disabled=true;}
+      build();ready=true;
+      $("msg").hidden=true;$("readout").hidden=false;$("legend").hidden=false;
+      header();fit();legend();
+      $("rValue").innerHTML="<small>tap the map to read a spot</small>";
+      return true;});});}
+
+load(true).catch(function(err){
+  say("Could not load the satellite data",
+      err.message+". The map files are published separately and may be mid-update; "+
+      "wait a minute and refresh. If it keeps failing the bake has not run.");
+});
+// a new pass lands about weekly; check quietly every half hour
+setInterval(function(){ load(false).catch(function(){}); },18e5);
+})();
+</script>
+</body>
+</html>
