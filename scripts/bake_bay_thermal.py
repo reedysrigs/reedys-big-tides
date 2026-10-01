@@ -297,11 +297,26 @@ def main():
         gy = np.linspace(-38.35, -37.87, 60)
         X, Y = np.meshgrid(gx, gy)
         hit = np.zeros(X.shape, dtype=bool)
-        for it in group:
-            bb = it.bbox or []
-            if len(bb) < 4:
-                continue
-            hit |= ((X >= bb[0]) & (X <= bb[2]) & (Y >= bb[1]) & (Y <= bb[3]))
+        # The real footprint, not the bbox. Landsat scenes are rotated
+        # parallelograms, so a bbox can report 100% cover over the bay while
+        # the actual swath misses a third of it - which is exactly what the
+        # bbox version of this check did on path 092.
+        try:
+            from shapely.geometry import shape, Point
+            for it in group:
+                if not it.geometry:
+                    continue
+                poly = shape(it.geometry)
+                for i in range(X.shape[0]):
+                    for j in range(X.shape[1]):
+                        if not hit[i, j] and poly.contains(Point(X[i, j], Y[i, j])):
+                            hit[i, j] = True
+        except ImportError:
+            for it in group:
+                bb = it.bbox or []
+                if len(bb) >= 4:
+                    hit |= ((X >= bb[0]) & (X <= bb[2])
+                            & (Y >= bb[1]) & (Y <= bb[3]))
         return float(hit.mean())
 
     recent = [p for p in passes
