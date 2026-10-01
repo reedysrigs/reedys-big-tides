@@ -22,9 +22,10 @@ concurrency:
 jobs:
   bake:
     runs-on: ubuntu-latest
-    # Cold run measured: 492 s per archive download, x2, plus extraction and
-    # cropping of 68 files. 45 minutes was too tight to be safe.
-    timeout-minutes: 90
+    # Cold run measured: 263-555 s per archive download, x2, plus extraction and
+    # cropping of 68 files. The fetch now retries a corrupt archive up to 3
+    # times per component, so the worst case is several times that.
+    timeout-minutes: 120
     steps:
       - name: Checkout
         uses: actions/checkout@v4
