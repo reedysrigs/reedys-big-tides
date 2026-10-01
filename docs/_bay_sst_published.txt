@@ -1,5 +1,5 @@
-checked 2026-10-01T02:18:58Z  run 36805124879
-  bay-sst.json           404  9379 bytes
-  bay-sst.png            404  9379 bytes
-  bay-sst-delta.json     404  9379 bytes
-  bay-sst-delta.png      404  9379 bytes
+checked 2026-10-01T02:23:37Z  run 36805521607
+  bay-sst.json           200  1781 bytes
+  bay-sst.png            200  1101214 bytes
+  bay-sst-delta.json     200  357 bytes
+  bay-sst-delta.png      200  899488 bytes
