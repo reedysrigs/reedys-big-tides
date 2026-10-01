@@ -78,11 +78,16 @@ REGIONS = [("Port Phillip", (144.35, -38.45, 145.06, -37.80)),
 # arms around French Island.
 BAY_POLYGONS = [
     # Port Phillip Bay, including Corio and down through the Heads
-    [(144.32, -38.17), (144.33, -38.05), (144.45, -37.96), (144.60, -37.87),
-     (144.78, -37.82), (144.92, -37.82), (145.03, -37.90), (145.06, -38.05),
-     (145.04, -38.20), (144.98, -38.31), (144.90, -38.36), (144.80, -38.37),
-     (144.72, -38.36), (144.66, -38.33), (144.62, -38.32), (144.56, -38.30),
-     (144.48, -38.26), (144.40, -38.23), (144.34, -38.20)],
+    # Generous on purpose. The polygon only decides where the layer is ALLOWED
+    # to appear; the water mask still decides what is water, so overshooting
+    # onto land costs nothing while undershooting cuts real water off. The
+    # first version ran the eastern edge at 145.03-145.06 and clipped the
+    # water off Beaumaris and Black Rock, which sit right on that line.
+    [(144.30, -38.20), (144.30, -38.02), (144.42, -37.93), (144.58, -37.84),
+     (144.75, -37.79), (144.95, -37.79), (145.09, -37.89), (145.13, -38.02),
+     (145.12, -38.14), (145.06, -38.26), (145.00, -38.33), (144.92, -38.37),
+     (144.82, -38.39), (144.72, -38.38), (144.65, -38.35), (144.59, -38.33),
+     (144.51, -38.29), (144.41, -38.25), (144.32, -38.22)],
     # Western Port. The first version of this outline stopped at -38.26 and cut
     # the whole top of the bay off - the north arm runs up past Warneet and
     # Tooradin to about -38.20, and the eastern arm reaches toward Lang Lang.
