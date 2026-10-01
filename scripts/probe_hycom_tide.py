@@ -33,6 +33,7 @@ import datetime as dt
 import io
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -60,74 +61,165 @@ POINTS = [
 DAYS = 14
 OUT_MD = "docs/_hycom_tide_probe.md"
 
-# ESPC-D-V02 is published on several hosts and the path has moved before, so
-# try them in order rather than hard-coding one and calling it a day.
-NCSS_BASES = [
-    "https://ncss.hycom.org/thredds/ncss/ESPC-D-V02/uv3z",
-    "https://tds.hycom.org/thredds/ncss/ESPC-D-V02/uv3z",
-    "https://ncss.hycom.org/thredds/ncss/GLBy0.08/expt_93.0/uv3z",
-    "https://tds.hycom.org/thredds/ncss/GLBy0.08/expt_93.0/uv3z",
+# ESPC-D-V02 is published on several hosts and the path has moved more than
+# once, so try a spread rather than hard-coding one and calling it a day.
+#
+# THREDDS 5 split the subset service into /ncss/grid/ and /ncss/point/; older
+# builds serve it at plain /ncss/. A request to the wrong one answers HTTP 400,
+# which is exactly what the first run of this probe got on every candidate - a
+# 400 means the server is THERE and rejected the query, so the fix is the URL
+# or the parameters, not the network.
+_HOSTS = ["https://ncss.hycom.org", "https://tds.hycom.org"]
+_PATHS = [
+    "/thredds/ncss/grid/ESPC-D-V02/uv3z",
+    "/thredds/ncss/ESPC-D-V02/uv3z",
+    "/thredds/ncss/grid/GLBy0.08/expt_93.0/uv3z",
+    "/thredds/ncss/GLBy0.08/expt_93.0/uv3z",
+    "/thredds/ncss/grid/GLBv0.08/expt_93.0/uv3z",
 ]
+NCSS_BASES = [h + p for p in _PATHS for h in _HOSTS]
 
 
-def fetch_series(lon, lat, t0, t1):
-    """3-hourly HYCOM surface u,v at one point. Returns (times_h, u, v, source)."""
-    q = {
+def http_get(url, timeout=120):
+    """Returns (status, body_text, error_text). Never raises."""
+    req = urllib.request.Request(url, headers={"User-Agent": "reedys-rigs-probe/1"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as fh:
+            return fh.getcode(), fh.read().decode("utf8", "replace"), None
+    except urllib.error.HTTPError as exc:
+        body = ""
+        try:
+            body = exc.read().decode("utf8", "replace")[:400]
+        except Exception:                                   # noqa: BLE001
+            pass
+        return exc.code, body, "HTTP %s" % exc.code
+    except Exception as exc:                                # noqa: BLE001
+        return None, "", str(exc)[:200]
+
+
+def discover(log):
+    """Ask each candidate what it offers. Returns bases that look usable."""
+    usable = []
+    log("### Endpoint discovery")
+    log("")
+    log("| endpoint | dataset.xml | note |")
+    log("|---|---|---|")
+    for base in NCSS_BASES:
+        status, body, err = http_get(base + "/dataset.xml", timeout=60)
+        note = ""
+        if status == 200 and ("<gridDataset" in body or "<capabilities" in body
+                              or "<GridDataset" in body or "gridSet" in body):
+            usable.append(base)
+            note = "grid dataset description returned"
+        elif status == 200:
+            note = "200 but unrecognised body: %r" % body[:80].replace("|", "/")
+        else:
+            note = (err or "status %s" % status).replace("|", "/")
+        log("| `%s` | %s | %s |" % (base.replace("https://", ""),
+                                    status if status else "-", note))
+    log("")
+    if usable:
+        # Record the accepted variables and time range of the first usable one,
+        # so a future failure can be diagnosed from this report alone.
+        status, body, _ = http_get(usable[0] + "/dataset.xml", timeout=60)
+        names = sorted(set(re.findall(r'name="(water_[a-z_]+)"', body)))
+        times = re.findall(r'<(?:start|end)>([^<]+)</(?:start|end)>', body)
+        log("First usable endpoint: `%s`" % usable[0])
+        log("")
+        log("- variables advertised: %s" % (", ".join("`%s`" % n for n in names)
+                                            or "none matched water_*"))
+        if times:
+            log("- time range advertised: %s" % " .. ".join(times[:2]))
+        log("")
+    else:
+        log("No candidate returned a usable grid dataset description.")
+        log("")
+    return usable
+
+
+def query_variants(lon, lat, t0, t1):
+    """Several plausible NCSS point-query spellings, most likely first."""
+    common = {
         "var": ["water_u", "water_v"],
         "latitude": "%.4f" % lat,
         "longitude": "%.4f" % lon,
         "time_start": t0.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "time_end": t1.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "vertCoord": "0",
-        "accept": "csv",
     }
-    qs = urllib.parse.urlencode(q, doseq=True)
-    last = None
-    for base in NCSS_BASES:
-        url = "%s?%s" % (base, qs)
-        try:
-            with urllib.request.urlopen(url, timeout=180) as fh:
-                raw = fh.read().decode("utf8", "replace")
-        except Exception as exc:                            # noqa: BLE001
-            last = "%s -> %s" % (base, exc)
-            continue
-        rows = [r for r in raw.splitlines() if r.strip()]
-        if len(rows) < 10:
-            last = "%s -> only %d rows" % (base, len(rows))
-            continue
-        head = [c.strip().strip('"') for c in rows[0].split(",")]
+    out = []
+    for extra in (
+        {"vertCoord": "0", "accept": "csv"},
+        {"accept": "csv"},                      # let it pick the top level
+        {"vertCoord": "0.0", "accept": "csv"},
+        {"vertCoord": "0", "accept": "text/csv"},
+        {"vertCoord": "0", "accept": "csv", "horizStride": "1"},
+    ):
+        q = dict(common)
+        q.update(extra)
+        out.append(urllib.parse.urlencode(q, doseq=True))
+    return out
 
-        def col(want):
-            for i, c in enumerate(head):
-                if c.split("[")[0].strip().lower() == want:
-                    return i
-            return None
 
-        it, iu, iv = col("time"), col("water_u"), col("water_v")
-        if None in (it, iu, iv):
-            last = "%s -> columns %r" % (base, head)
-            continue
-        ts, us, vs = [], [], []
-        for r in rows[1:]:
-            p = [c.strip().strip('"') for c in r.split(",")]
-            if len(p) <= max(it, iu, iv):
+def fetch_series(lon, lat, t0, t1, bases, log=None):
+    """3-hourly HYCOM surface u,v at one point. Returns (times_h, u, v, source).
+
+    Tries every (base, query-spelling) pair and records what each one said, so a
+    failure produces a diagnosis instead of just "it did not work".
+    """
+    tried = []
+    for base in bases:
+        for qs in query_variants(lon, lat, t0, t1):
+            url = "%s?%s" % (base, qs)
+            status, raw, err = http_get(url, timeout=180)
+            if err or status != 200:
+                tried.append("%s [%s] -> %s %s" % (
+                    base.replace("https://", ""), qs[:46], status or "-",
+                    (raw[:120].replace("\n", " ") if raw else (err or ""))))
                 continue
-            try:
-                when = dt.datetime.strptime(p[it][:19], "%Y-%m-%dT%H:%M:%S")
-                uu, vv = float(p[iu]), float(p[iv])
-            except ValueError:
+            rows = [r for r in raw.splitlines() if r.strip()]
+            if len(rows) < 10:
+                tried.append("%s [%s] -> 200 but only %d rows" % (
+                    base.replace("https://", ""), qs[:46], len(rows)))
                 continue
-            if not (np.isfinite(uu) and np.isfinite(vv)):
+            head = [c.strip().strip('"') for c in rows[0].split(",")]
+
+            def col(want, _head=head):
+                for i, c in enumerate(_head):
+                    if c.split("[")[0].strip().lower() == want:
+                        return i
+                return None
+
+            it, iu, iv = col("time"), col("water_u"), col("water_v")
+            if None in (it, iu, iv):
+                tried.append("%s [%s] -> 200, unexpected columns %r" % (
+                    base.replace("https://", ""), qs[:46], head[:8]))
                 continue
-            ts.append(when)
-            us.append(uu)
-            vs.append(vv)
-        if len(ts) < 20:
-            last = "%s -> only %d usable samples" % (base, len(ts))
-            continue
-        t_h = np.array([(x - ts[0]).total_seconds() / 3600.0 for x in ts])
-        return t_h, np.array(us), np.array(vs), base
-    raise RuntimeError("no HYCOM endpoint worked; last: %s" % last)
+            ts, us, vs = [], [], []
+            for r in rows[1:]:
+                p = [c.strip().strip('"') for c in r.split(",")]
+                if len(p) <= max(it, iu, iv):
+                    continue
+                try:
+                    when = dt.datetime.strptime(p[it][:19], "%Y-%m-%dT%H:%M:%S")
+                    uu, vv = float(p[iu]), float(p[iv])
+                except ValueError:
+                    continue
+                if not (np.isfinite(uu) and np.isfinite(vv)):
+                    continue
+                ts.append(when)
+                us.append(uu)
+                vs.append(vv)
+            if len(ts) < 20:
+                tried.append("%s [%s] -> 200 but only %d usable samples" % (
+                    base.replace("https://", ""), qs[:46], len(ts)))
+                continue
+            t_h = np.array([(x - ts[0]).total_seconds() / 3600.0 for x in ts])
+            if log:
+                log("Working query: `%s?%s`" % (base, qs))
+                log("")
+            return t_h, np.array(us), np.array(vs), base
+    raise RuntimeError("no HYCOM endpoint and query combination worked.\n"
+                       + "\n".join("  " + t for t in tried))
 
 
 def harmonic_fit(t_h, series, periods):
@@ -191,11 +283,19 @@ def main():
     w("fields can be added. If its M2 is the same order as FES's, they cannot.")
     w("")
 
+    bases = discover(w)
+    if not bases:
+        w("Falling back to trying every candidate anyway - dataset.xml may be")
+        w("disabled while the subset service itself still works.")
+        w("")
+        bases = NCSS_BASES
+
     results = []
     source = None
     for name, lon, lat, expect in POINTS:
         try:
-            t_h, u, v, src = fetch_series(lon, lat, t0, t1)
+            t_h, u, v, src = fetch_series(lon, lat, t0, t1, bases,
+                                          log=(w if source is None else None))
             source = source or src
         except Exception as exc:                            # noqa: BLE001
             w("## %s - COULD NOT FETCH" % name)
