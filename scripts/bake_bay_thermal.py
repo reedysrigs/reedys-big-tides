@@ -52,6 +52,15 @@ MAX_CLOUD = 40.0
 QA_FILL, QA_DILATED, QA_CIRRUS = 1 << 0, 1 << 1, 1 << 2
 QA_CLOUD, QA_SHADOW, QA_WATER = 1 << 3, 1 << 4, 1 << 7
 
+# A physical floor and ceiling for water in these two bays. Measured on the
+# first real bake: 99.4% of the pixels QA_PIXEL called water came back between
+# 8 and 24 degC with a median of 13.64, and the remaining 0.6% sat below 8 -
+# cloud shadow the quality band did not catch. Those few hundredths of a
+# percent were enough to drag the gradient scale to 14.6 degC/km and flatten
+# the layer that matters, so they are cut on physical grounds and the count is
+# reported rather than hidden.
+PHYS_MIN_C, PHYS_MAX_C = 6.0, 26.0
+
 
 def grid_axes():
     """Cell-centre lon/lat. Row 0 is NORTH, matching the page's textures."""
@@ -269,6 +278,14 @@ def main():
           % (day, len(group), cloud))
     stack = mosaic(group, lon, lat)
 
+    raw_cells = int(np.isfinite(stack).sum())
+    outside = np.isfinite(stack) & ((stack < PHYS_MIN_C) | (stack > PHYS_MAX_C))
+    n_out = int(outside.sum())
+    stack[outside] = np.nan
+    print("physical filter %.0f-%.0f degC removed %d of %d flagged cells (%.2f%%)"
+          % (PHYS_MIN_C, PHYS_MAX_C, n_out, raw_cells,
+             100.0 * n_out / max(1, raw_cells)))
+
     ok = np.isfinite(stack)
     frac = float(ok.mean())
     print("water coverage of the box: %.1f%% (%d cells)" % (100 * frac, ok.sum()))
@@ -280,6 +297,19 @@ def main():
     t = stack[ok]
     tmin = float(np.floor(np.percentile(t, 0.2) * 2) / 2 - 0.5)
     tmax = float(np.ceil(np.percentile(t, 99.8) * 2) / 2 + 0.5)
+
+    # The structure in these bays lives in TENTHS of a degree - measured
+    # interquartile spread across the whole of Port Phillip was 0.31 degC. The
+    # 16-bit encoding means no precision is lost whatever the range, but a page
+    # that ramps colour naively from t_min to t_max would render all of that as
+    # one flat wash. So publish the percentiles and let the page stretch to the
+    # water that is actually there.
+    pct = {("p%g" % p): round(float(np.percentile(t, p)), 3)
+           for p in (0.5, 1, 2, 5, 10, 25, 50, 75, 90, 95, 98, 99, 99.5)}
+    iqr = pct["p75"] - pct["p25"]
+    print("water %.2f..%.2f degC, median %.2f, IQR %.3f degC "
+          "(p2 %.2f, p98 %.2f - stretch display to these)"
+          % (t.min(), t.max(), pct["p50"], iqr, pct["p2"], pct["p98"]))
 
     # The fronts. This is the layer worth having - at 2 km a front narrower
     # than a pixel is averaged into flat colour and cannot be seen at all.
@@ -374,6 +404,15 @@ def main():
         "observed_min_c": round(float(t.min()), 2),
         "observed_max_c": round(float(t.max()), 2),
         "median_c": round(float(np.median(t)), 2),
+        # For display. The interesting variation here is a few tenths of a
+        # degree, so a page must stretch to these, not to t_min..t_max.
+        "percentiles_c": pct,
+        "iqr_c": round(float(iqr), 3),
+        "display_lo_c": pct["p2"],
+        "display_hi_c": pct["p98"],
+        "physical_filter_c": [PHYS_MIN_C, PHYS_MAX_C],
+        "physical_filter_removed": n_out,
+        "physical_filter_removed_pct": round(100.0 * n_out / max(1, raw_cells), 3),
         "water_fraction": round(frac, 4),
         "water_cells": int(ok.sum()),
         "skin_temperature": True,
