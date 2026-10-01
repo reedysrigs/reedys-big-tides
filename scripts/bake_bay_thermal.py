@@ -70,6 +70,36 @@ PHYS_MIN_C, PHYS_MAX_C = 6.0, 26.0
 REGIONS = [("Port Phillip", (144.35, -38.45, 145.06, -37.80)),
            ("Western Port", (145.06, -38.70, 145.60, -38.15))]
 
+# This layer is INSHORE. Everything outside the two bays is cut, because the
+# offshore map already covers that water and a bay product bleeding out into
+# Bass Strait is just noise over someone else's layer. Boxes would leave
+# visible rectangles, so these are hand-drawn outlines of the two water
+# bodies, generous enough to include Corio, the entrance and the Rip, and the
+# arms around French Island.
+BAY_POLYGONS = [
+    # Port Phillip Bay, including Corio and down through the Heads
+    [(144.32, -38.17), (144.33, -38.05), (144.45, -37.96), (144.60, -37.87),
+     (144.78, -37.82), (144.92, -37.82), (145.03, -37.90), (145.06, -38.05),
+     (145.04, -38.20), (144.98, -38.31), (144.90, -38.36), (144.80, -38.37),
+     (144.72, -38.36), (144.66, -38.33), (144.62, -38.32), (144.56, -38.30),
+     (144.48, -38.26), (144.40, -38.23), (144.34, -38.20)],
+    # Western Port, wrapping both arms around French Island
+    [(145.06, -38.38), (145.10, -38.30), (145.18, -38.26), (145.30, -38.27),
+     (145.42, -38.32), (145.50, -38.40), (145.50, -38.48), (145.42, -38.52),
+     (145.30, -38.53), (145.20, -38.52), (145.12, -38.47), (145.07, -38.43)],
+]
+
+
+def bay_mask(lon, lat):
+    """True inside either bay outline."""
+    from matplotlib.path import Path as _P
+    X, Y = np.meshgrid(lon, lat)
+    pts = np.column_stack([X.ravel(), Y.ravel()])
+    keep = np.zeros(pts.shape[0], dtype=bool)
+    for poly in BAY_POLYGONS:
+        keep |= _P(np.array(poly)).contains_points(pts)
+    return keep.reshape(X.shape)
+
 
 def grid_axes():
     """Cell-centre lon/lat. Row 0 is NORTH, matching the page's textures."""
@@ -424,6 +454,17 @@ def main():
     if not region_info:
         print("::error::no usable pass for either bay", file=sys.stderr)
         return 1
+
+    # Cut everything outside the two bays.
+    try:
+        inbay = bay_mask(lon, lat)
+        before_clip = int(np.isfinite(stack).sum())
+        stack[~inbay] = np.nan
+        print("bay clip: kept %d of %d cells (%.0f%% dropped as offshore)"
+              % (int(np.isfinite(stack).sum()), before_clip,
+                 100.0 * (1 - np.isfinite(stack).sum() / max(1, before_clip))))
+    except Exception as _exc:                               # noqa: BLE001
+        print("::warning::bay clip skipped (%s)" % _exc, file=sys.stderr)
     lead = max(region_info, key=lambda r: r["cells"])
     day, cloud = lead["scene_date"], lead["cloud_cover_pct"]
     group = chosen[lead["scene_date"]]["group"]

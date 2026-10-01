@@ -38,7 +38,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install --quiet numpy pillow scipy rasterio shapely pystac-client planetary-computer
+        run: pip install --quiet numpy pillow matplotlib scipy rasterio shapely pystac-client planetary-computer
 
       - name: Bake
         run: python scripts/bake_bay_thermal.py
