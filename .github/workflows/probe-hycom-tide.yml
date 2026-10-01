@@ -1,0 +1,80 @@
+name: Probe whether HYCOM contains the tide
+
+# One question, answered by measurement: does the HYCOM field the offshore page
+# already uses contain tidal motion?
+#
+# It decides whether the FES2014 field can be ADDED to HYCOM or not. If HYCOM
+# already carries the tide, adding FES double-counts it everywhere shallow -
+# worse than shipping neither, because the error would be largest exactly where
+# the tide matters most.
+#
+# Read-only with respect to the map. It writes docs/_hycom_tide_probe.md and
+# touches nothing the page loads.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  # Its own group. A previous version of the FES workflow shared a group with
+  # other docs jobs and queued 20-second probes behind a multi-hour download;
+  # not repeating that.
+  group: hycom-tide-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install --quiet numpy netCDF4 xarray
+
+      # Restore only - this job must never write the constituent cache.
+      - name: Restore FES2014 constituents
+        id: fes-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: fes-data
+          key: fes2014-currents-au-crop-all34-v3
+
+      - name: Report cache state
+        run: |
+          echo "cache hit: ${{ steps.fes-cache.outputs.cache-hit }}"
+          if [ -d fes-data ]; then
+            echo "constituent files: $(find fes-data -name '*.nc' | wc -l)"
+          else
+            echo "::warning::no FES cache - the probe can still fit HYCOM but"
+            echo "::warning::has nothing to compare against, so it will report"
+            echo "::warning::INCONCLUSIVE rather than guess."
+          fi
+
+      - name: Probe
+        id: probe
+        env:
+          FES_DIR: fes-data
+        run: python scripts/probe_hycom_tide.py
+
+      - name: Commit the report
+        if: always()
+        run: |
+          git config user.name  "tide-current-bot"
+          git config user.email "tide-current-bot@users.noreply.github.com"
+          git add docs/_hycom_tide_probe.md 2>/dev/null || true
+          git diff --cached --quiet && { echo "nothing to commit"; exit 0; }
+          git commit -m "HYCOM tide probe (${{ job.status }})"
+          for i in 1 2 3; do
+            git pull --rebase --autostash && git push && exit 0
+            sleep 5
+          done
+          exit 1
