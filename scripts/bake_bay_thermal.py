@@ -313,10 +313,29 @@ def main():
 
     # The fronts. This is the layer worth having - at 2 km a front narrower
     # than a pixel is averaged into flat colour and cannot be seen at all.
+    #
+    # But a gradient taken within a couple of cells of land or a cloud hole is
+    # not a front, it is the edge of the mask. Measured on the real bake:
+    #   interior water      median 0.381 degC/km, 99th pct 5.88
+    #   within 2 of an edge median 2.122 degC/km, 99th pct 13.87
+    # Left alone, that 14.5% of cells sets the entire colour scale and the
+    # layer draws a coastline instead of a front. So the gradient is reported
+    # only where there is real water for two cells in every direction.
     grad = gradient_per_km(stack, lon, lat)
+    interior = ok.copy()
+    for dy in (-2, -1, 1, 2):
+        for dx in (-2, -1, 1, 2):
+            interior &= np.roll(np.roll(ok, dy, axis=0), dx, axis=1)
+    interior[:2, :] = interior[-2:, :] = False
+    interior[:, :2] = interior[:, -2:] = False
+    grad = np.where(interior, grad, np.nan)
     gok = np.isfinite(grad)
-    grad_max = float(np.percentile(grad[gok], 99.5)) if gok.any() else 1.0
+    grad_max = float(np.percentile(grad[gok], 99.0)) if gok.any() else 1.0
     grad_max = max(0.05, grad_max)
+    print("fronts: %d interior cells (%.0f%% of water), median %.3f, "
+          "99th pct %.3f degC/km"
+          % (gok.sum(), 100.0 * gok.sum() / max(1, ok.sum()),
+             float(np.median(grad[gok])) if gok.any() else 0.0, grad_max))
     px = encode(stack, tmin, tmax, grad=grad, grad_max=grad_max)
 
     # Which way the warm water is pushing: difference against the most recent
@@ -397,7 +416,14 @@ def main():
         # The fronts layer, carried in the blue channel.
         "grad_max_c_per_km": round(grad_max, 4),
         "grad_decode": "degC_per_km = B / 255 * grad_max_c_per_km",
-        "grad_p99_5_c_per_km": round(grad_max, 4),
+        "grad_interior_only": True,
+        "grad_note": ("Gradient is reported only where there is water for two "
+                      "cells in every direction. Within two cells of land or a "
+                      "cloud hole a gradient is the edge of the mask, not a "
+                      "front, and those cells otherwise set the whole scale."),
+        "grad_median_c_per_km": (round(float(np.median(grad[gok])), 4)
+                                 if gok.any() else None),
+        "grad_cells": int(gok.sum()),
         "decode": "degC = t_min + (R*256+G)/65535 * (t_max - t_min)",
         "change_layer": ("bay-sst-delta.png" if delta_meta else None),
         "change": delta_meta,
