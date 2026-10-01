@@ -115,3 +115,33 @@ jobs:
             echo "push failed, retrying ($i)"; sleep 5
           done
           exit 1
+
+      # Baking the file is not the same as the page being able to FETCH it.
+      # The offshore page loads everything from reedys-sst/docs; these files are
+      # committed to reedys-big-tides/docs, which is only reachable if Pages is
+      # serving this repo. Check rather than assume - and keep checking, because
+      # a Pages setting can be turned off later without anyone noticing here.
+      - name: Verify the published URL the page would use
+        if: success()
+        run: |
+          sleep 45          # Pages needs a moment after the push
+          ok=0
+          for base in \
+            "https://reedysrigs.github.io/reedys-big-tides/docs" \
+            "https://reedysrigs.github.io/reedys-big-tides" \
+            "https://reedysrigs.github.io/reedys-sst/docs" ; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$base/tide-uv.json" || echo 000)
+            size=$(curl -s -o /dev/null -w '%{size_download}' --max-time 60 "$base/tide-uv.png" || echo 0)
+            printf '  %-56s json %s  png %s bytes\n' "$base" "$code" "$size"
+            if [ "$code" = "200" ] && [ "$size" -gt 10000 ]; then
+              echo "  ^ USABLE - point the offshore page at this base"
+              ok=1
+            fi
+          done
+          if [ "$ok" = "0" ]; then
+            echo "::warning::the baked files are committed but not reachable over HTTP"
+            echo "::warning::from any candidate base. The page cannot load them yet."
+            echo "::warning::Either enable GitHub Pages for this repo (Settings ->"
+            echo "::warning::Pages -> deploy from branch main, folder /docs) or the"
+            echo "::warning::bake needs to publish into the reedys-sst repo instead."
+          fi
