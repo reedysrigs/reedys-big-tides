@@ -513,7 +513,13 @@ def main():
     # exactly those - it fills a gap enclosed by valid data and does not reach
     # out past the edge of the water body. Published as a count so the
     # interpolated fraction is never hidden.
-    FILL_KM = 1.0
+    # 2.5 km now the bay clip is in place. Closing only fills holes ENCLOSED by
+    # water, and everything outside the two bay outlines has already been cut,
+    # so a larger radius cannot spill offshore. It still cannot swallow French
+    # Island or the peninsulas - those are far wider than the closing radius -
+    # but it does close Swan Bay and the shallow turbid patches the quality
+    # mask rejects, which are the white holes left inside the bays.
+    FILL_KM = 2.5
     filled_from = np.zeros(stack.shape, dtype=bool)
     try:
         from scipy import ndimage as _nd
@@ -722,7 +728,7 @@ def main():
         "water_cells": int(ok.sum()),
         "despeckled_cells": n_stray,
         "gap_filled_cells": int(filled_from.sum()),
-        "gap_fill_km": 1.0,
+        "gap_fill_km": 2.5,
         # Coverage of the bay itself, which is what a cloudy pass actually
         # costs. The box includes a lot of land, so water_fraction alone hides
         # a hole straight through Port Phillip.
