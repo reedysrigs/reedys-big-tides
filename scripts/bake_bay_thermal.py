@@ -458,7 +458,7 @@ def main():
     # at it, which is worse than a short extrapolation. Limited to FILL_KM so
     # one pixel never gets to paint a whole arm of Western Port, and the count
     # is published so the filled fraction is never a secret.
-    FILL_KM = 1.5
+    FILL_KM = 0.8
     reach = int(round(FILL_KM * 1000.0 / METRES))
     filled_from = np.zeros(stack.shape, dtype=bool)
     try:
@@ -638,7 +638,7 @@ def main():
         "water_cells": int(ok.sum()),
         "despeckled_cells": n_stray,
         "gap_filled_cells": int(filled_from.sum()),
-        "gap_fill_km": 1.5,
+        "gap_fill_km": 0.8,
         # Coverage of the bay itself, which is what a cloudy pass actually
         # costs. The box includes a lot of land, so water_fraction alone hides
         # a hole straight through Port Phillip.
