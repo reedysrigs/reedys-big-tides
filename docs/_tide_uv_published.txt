@@ -1,7 +1,7 @@
-checked 2026-11-21T16:14:49Z  run 44923384172
+checked 2026-11-21T17:12:44Z  run 44928665670
 
-  https://reedysrigs.github.io/reedys-big-tides/docs       json 200  png 118725 bytes   <-- USABLE
+  https://reedysrigs.github.io/reedys-big-tides/docs       json 200  png 115108 bytes   <-- USABLE
   https://reedysrigs.github.io/reedys-big-tides            json 404  png 9379 bytes
-  https://reedysrigs.github.io/reedys-sst/docs             json 404  png 9379 bytes
+  https://reedysrigs.github.io/reedys-sst/docs             json 503  png 9379 bytes
 
 VERDICT: reachable - see the USABLE line above
